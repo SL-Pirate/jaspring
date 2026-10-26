@@ -99,6 +99,26 @@ class TemplateCompilerTest {
         registry.compileAll(COMPILER);
     }
 
+    @Component(selector = "app-svg", template = "<svg viewBox=\"0 0 10 10\"><circle cx=\"5\" r=\"4\" [attr.r]=\"r\"/><foreignObject><div></div></foreignObject></svg>")
+    public static class Svg {
+        public int r;
+    }
+
+    @Test
+    void svgElementsAreKnownUnderTheirNamespace() {
+        registry(Svg.class).compileAll(COMPILER);
+    }
+
+    @Component(selector = "app-svg-bad", template = "<svg><blob></blob></svg>")
+    public static class UnknownSvgChild {}
+
+    @Test
+    void unknownSvgChildrenAreReportedByLocalName() {
+        final var error = compileError(UnknownSvgChild.class);
+        assertEquals(1, error.errors().size());
+        assertTrue(error.errors().get(0).message().startsWith("'blob' is not a known element"));
+    }
+
     @Component(selector = "app-d", template = "<div [nope]=\"1\"></div><app-child [other]=\"2\" size=\"1\"></app-child>")
     public static class UnknownProperties {}
 

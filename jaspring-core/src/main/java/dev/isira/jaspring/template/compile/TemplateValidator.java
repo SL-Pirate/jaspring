@@ -121,7 +121,9 @@ final class TemplateValidator {
     }
 
     private void element(TemplateNode.Element element, Set<String> scope) {
+        // Selectors and messages use the local name; the schema is keyed by Angular's namespaced name (`:svg:circle`).
         final var tagName = localName(element.name());
+        final var schemaName = element.name();
         final var attributes = new LinkedHashMap<String, String>();
         element.attributes().forEach(a -> attributes.put(localName(a.name()), a.value()));
         final var boundNames = new HashSet<String>();
@@ -131,7 +133,7 @@ final class TemplateValidator {
 
         if (structural) {
             // Angular's own elements: nothing to validate on the tag itself.
-        } else if (component == null && !schema.hasElement(tagName) && !def.schemas().contains(Schema.NO_ERRORS)) {
+        } else if (component == null && !schema.hasElement(schemaName) && !def.schemas().contains(Schema.NO_ERRORS)) {
             error("'" + tagName + "' is not a known element:\n1. If '" + tagName + "' is a Jaspring component, then verify that it is annotated with @Component and scanned.\n2. To allow any element add 'NO_ERRORS_SCHEMA' to the '@Component.schemas' of this component.",
                     element.startSourceSpan());
         } else if (component == null && tagName.contains("-") && !schema.knownElements().contains(tagName)
@@ -148,7 +150,7 @@ final class TemplateValidator {
             final var known = DIRECTIVE_INPUTS.contains(name)
                     || directives.stream().anyMatch(d -> d.inputs().containsKey(name))
                     || (component != null && component.inputs().containsKey(name))
-                    || schema.hasProperty(component == null ? tagName : "unknown", name)
+                    || schema.hasProperty(component == null ? schemaName : "unknown", name)
                     || def.schemas().contains(Schema.NO_ERRORS)
                     || (tagName.contains("-") && def.schemas().contains(Schema.CUSTOM_ELEMENTS));
             if (!known) {

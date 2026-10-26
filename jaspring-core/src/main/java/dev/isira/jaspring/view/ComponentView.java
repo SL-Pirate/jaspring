@@ -18,10 +18,17 @@ public final class ComponentView {
 
     static final char MARKER = '\u0000';
 
+    private static final dev.isira.jaspring.context.CurrentContext<ComponentView> CURRENT = dev.isira.jaspring.context.CurrentContext.threadLocal();
+
     private final long id;
     private final ComponentDef def;
-    private final Object instance;
+    private Object instance;
     private final ComponentView parent;
+    private final ViewConsumerNode consumer = new ViewConsumerNode(this);
+    private dev.isira.jaspring.cd.ChangeDetector changeDetector;
+    private Object projectionSlots;
+    private boolean attached = true;
+    private boolean hostChanged;
     private final Map<String, ComponentView> children = new LinkedHashMap<>();
     private final Map<String, Object> inputs = new HashMap<>();
     private final Map<Integer, HandlerBinding> handlers = new HashMap<>();
@@ -39,11 +46,59 @@ public final class ComponentView {
     private boolean htmlChanged;
     private dev.isira.jaspring.template.eval.Scope outputScope = dev.isira.jaspring.template.eval.Scope.root();
 
-    ComponentView(long id, ComponentDef def, Object instance, ComponentView parent) {
+    ComponentView(long id, ComponentDef def, ComponentView parent) {
         this.id = id;
         this.def = def;
-        this.instance = instance;
         this.parent = parent;
+    }
+
+    /// The view whose component is being constructed or whose hook runs on this thread, if any.
+    public static ComponentView current() {
+        return CURRENT.get();
+    }
+
+    static <T> T runAs(ComponentView view, java.util.function.Supplier<T> body) {
+        return CURRENT.runWith(view, body);
+    }
+
+    void attach(Object instance) {
+        this.instance = instance;
+    }
+
+    public ViewConsumerNode consumer() {
+        return consumer;
+    }
+
+    public dev.isira.jaspring.cd.ChangeDetector changeDetector() {
+        return changeDetector;
+    }
+
+    void changeDetector(dev.isira.jaspring.cd.ChangeDetector detector) {
+        this.changeDetector = detector;
+    }
+
+    Object projectionSlots() {
+        return projectionSlots;
+    }
+
+    void projectionSlots(Object slots) {
+        this.projectionSlots = slots;
+    }
+
+    public boolean isAttached() {
+        return attached;
+    }
+
+    public void setAttached(boolean attached) {
+        this.attached = attached;
+    }
+
+    public boolean hostChanged() {
+        return hostChanged;
+    }
+
+    public void clearHostChanged() {
+        hostChanged = false;
     }
 
     public long id() {
@@ -112,6 +167,7 @@ public final class ComponentView {
     // ---- rendered pieces ----
 
     void host(String tagName, String openTag) {
+        if (!openTag.equals(hostOpenTag)) hostChanged = true;
         this.hostTagName = tagName;
         this.hostOpenTag = openTag;
     }
@@ -183,7 +239,7 @@ public final class ComponentView {
         return htmlChanged;
     }
 
-    void clearHtmlChanged() {
+    public void clearHtmlChanged() {
         htmlChanged = false;
     }
 

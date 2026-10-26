@@ -12,11 +12,15 @@ public final class ViewTree {
     private long nextId;
     private ComponentView root;
 
-    ComponentView create(ComponentDef def, Object instance, ComponentView parent) {
-        final var view = new ComponentView(++nextId, def, instance, parent);
+    ComponentView create(ComponentDef def, ComponentView parent) {
+        final var view = new ComponentView(++nextId, def, parent);
         views.put(view.id(), view);
         if (parent == null) root = view;
         return view;
+    }
+
+    public java.util.Collection<ComponentView> views() {
+        return java.util.List.copyOf(views.values());
     }
 
     void remove(ComponentView view) {

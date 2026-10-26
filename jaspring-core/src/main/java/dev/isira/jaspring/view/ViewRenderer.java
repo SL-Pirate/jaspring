@@ -17,6 +17,7 @@ import dev.isira.jaspring.cd.lifecycle.OnDestroy;
 import dev.isira.jaspring.cd.lifecycle.OnInit;
 import dev.isira.jaspring.cd.lifecycle.SimpleChange;
 import dev.isira.jaspring.cd.lifecycle.SimpleChanges;
+import dev.isira.jaspring.component.ChangeDetectionStrategy;
 import dev.isira.jaspring.component.ComponentDef;
 import dev.isira.jaspring.component.ComponentDefs;
 import dev.isira.jaspring.component.ComponentRegistry;
@@ -45,10 +46,20 @@ public final class ViewRenderer {
         this.liveEvents = liveEvents;
     }
 
+    public ComponentRegistry registry() {
+        return registry;
+    }
+
     /// Creates the root view of a page, applies the initial inputs and renders the whole tree.
     public ComponentView createRoot(ViewTree tree, Class<?> type, Map<String, Object> inputs) {
+        return createRoot(tree, type, inputs, null);
+    }
+
+    public ComponentView createRoot(ViewTree tree, Class<?> type, Map<String, Object> inputs, dev.isira.jaspring.cd.ChangeDetector detector) {
         final var def = registry.component(type);
-        final var view = tree.create(def, instantiate(def), null);
+        final var view = tree.create(def, null);
+        view.changeDetector(detector);
+        instantiate(view);
         final var selector = def.selectors().get(0);
         final var tagName = selector.element() == null ? "div" : selector.element();
         final var hostAttributes = new LinkedHashMap<String, String>();
@@ -56,14 +67,20 @@ public final class ViewRenderer {
         view.host(tagName, hostOpenTag(tagName, hostAttributes, List.of(), view));
         final var changes = applyInputs(view, inputs);
         runPreRenderHooks(view, changes);
-        renderView(tree, view, null);
+        renderView(tree, view, null, detector);
         return view;
     }
 
     /// Re-renders one view and, through its template, every child component it contains.
     public void refresh(ViewTree tree, ComponentView view) {
+        refresh(tree, view, view.changeDetector());
+    }
+
+    /// Re-renders one view. With a detector, child components follow its Default/OnPush decisions instead of always re-rendering.
+    public void refresh(ViewTree tree, ComponentView view, dev.isira.jaspring.cd.ChangeDetector detector) {
         if (view.parent() == null) runPreRenderHooks(view, new SimpleChanges());
-        renderView(tree, view, null);
+        else if (view.instance() instanceof DoCheck hook) untracked(view, hook::ngDoCheck);
+        renderView(tree, view, (ProjectionSlots) view.projectionSlots(), detector);
     }
 
     private final Map<ComponentView, Map<String, Map<String, Object>>> directiveInputs = new java.util.WeakHashMap<>();
@@ -72,37 +89,52 @@ public final class ViewRenderer {
         return directiveInputs.computeIfAbsent(view, v -> new java.util.HashMap<>());
     }
 
-    private void renderView(ViewTree tree, ComponentView view, ProjectionSlots slots) {
+    private void renderView(ViewTree tree, ComponentView view, ProjectionSlots slots, dev.isira.jaspring.cd.ChangeDetector detector) {
         final var visited = new HashSet<String>();
         view.clearHandlers();
+        view.projectionSlots(slots);
+        view.changeDetector(detector);
         final var out = new HtmlWriter();
         final var context = EvaluationContext.of(view.instance()).withPipes(registry);
-        final var host = new ViewHost(tree, view, visited, slots);
-        renderer.render(registry.template(view.def().type()).parsed().nodes(), context, out, host);
+        final var host = new ViewHost(tree, view, visited, slots, detector);
+        // Signals read by the template link to the view's consumer; a later write marks the view dirty.
+        view.consumer().clearDirty();
+        dev.isira.jaspring.signals.internal.Graph.computeAs(view.consumer(), () -> {
+            renderer.render(registry.template(view.def().type()).parsed().nodes(), context, out, host);
+            return null;
+        });
         view.templateHtml(out.toString());
         view.clearDirty();
         host.releaseUnvisitedDirectives();
         destroyUnvisitedChildren(tree, view, visited);
         if (!view.isViewInitialized()) {
             view.markViewInitialized();
-            if (view.instance() instanceof AfterViewInit hook) hook.ngAfterViewInit();
+            if (view.instance() instanceof AfterViewInit hook) untracked(view, hook::ngAfterViewInit);
         }
-        if (view.instance() instanceof AfterViewChecked hook) hook.ngAfterViewChecked();
+        if (view.instance() instanceof AfterViewChecked hook) untracked(view, hook::ngAfterViewChecked);
+    }
+
+    /// Hooks run with the view bound (for `ChangeDetectorRef.current()`) and without reactive tracking, like Angular.
+    static void untracked(ComponentView view, Runnable hook) {
+        ComponentView.runAs(view, () -> Signals.untracked(() -> {
+            hook.run();
+            return null;
+        }));
     }
 
     private static void runPreRenderHooks(ComponentView view, SimpleChanges changes) {
         final var instance = view.instance();
-        if (!changes.isEmpty() && instance instanceof OnChanges hook) hook.ngOnChanges(changes);
+        if (!changes.isEmpty() && instance instanceof OnChanges hook) untracked(view, () -> hook.ngOnChanges(changes));
         if (!view.isInitialized()) {
             view.markInitialized();
-            if (instance instanceof OnInit hook) hook.ngOnInit();
+            if (instance instanceof OnInit hook) untracked(view, hook::ngOnInit);
         }
-        if (instance instanceof DoCheck hook) hook.ngDoCheck();
+        if (instance instanceof DoCheck hook) untracked(view, hook::ngDoCheck);
         if (!view.isContentInitialized()) {
             view.markContentInitialized();
-            if (instance instanceof AfterContentInit hook) hook.ngAfterContentInit();
+            if (instance instanceof AfterContentInit hook) untracked(view, hook::ngAfterContentInit);
         }
-        if (instance instanceof AfterContentChecked hook) hook.ngAfterContentChecked();
+        if (instance instanceof AfterContentChecked hook) untracked(view, hook::ngAfterContentChecked);
     }
 
     public void destroy(ViewTree tree, ComponentView view) {
@@ -118,15 +150,19 @@ public final class ViewRenderer {
         }
         view.directives().clear();
         view.subscriptions().forEach(dev.isira.jaspring.signals.Subscription::unsubscribe);
-        if (view.instance() instanceof OnDestroy hook) hook.ngOnDestroy();
+        dev.isira.jaspring.signals.internal.Graph.consumerDestroy(view.consumer());
+        if (view.instance() instanceof OnDestroy hook) untracked(view, hook::ngOnDestroy);
         registry.factory().destroy(view.instance());
         tree.remove(view);
     }
 
-    private Object instantiate(ComponentDef def) {
-        final var instance = registry.factory().create(def.type());
-        ComponentDefs.bindSignalNames(instance);
-        return instance;
+    private void instantiate(ComponentView view) {
+        ComponentView.runAs(view, () -> Signals.untracked(() -> {
+            final var instance = registry.factory().create(view.def().type());
+            ComponentDefs.bindSignalNames(instance);
+            view.attach(instance);
+            return null;
+        }));
     }
 
     private void destroyUnvisitedChildren(ViewTree tree, ComponentView view, Set<String> visited) {
@@ -174,16 +210,14 @@ public final class ViewRenderer {
         private final Set<String> visitedDirectives = new HashSet<>();
         private final Map<String, Map<String, Object>> directiveInputs;
         private final ProjectionSlots projected;
+        private final dev.isira.jaspring.cd.ChangeDetector detector;
 
-        ViewHost(ViewTree tree, ComponentView view, Set<String> visited) {
-            this(tree, view, visited, null);
-        }
-
-        ViewHost(ViewTree tree, ComponentView view, Set<String> visited, ProjectionSlots projected) {
+        ViewHost(ViewTree tree, ComponentView view, Set<String> visited, ProjectionSlots projected, dev.isira.jaspring.cd.ChangeDetector detector) {
             this.tree = tree;
             this.view = view;
             this.visited = visited;
             this.projected = projected;
+            this.detector = detector;
             this.directiveInputs = directiveInputsOf(view);
         }
 
@@ -252,7 +286,9 @@ public final class ViewRenderer {
             var child = view.children().get(key);
             final var created = child == null;
             if (created) {
-                child = tree.create(occurrence.def(), instantiate(occurrence.def()), view);
+                child = tree.create(occurrence.def(), view);
+                child.changeDetector(detector);
+                instantiate(child);
                 view.children().put(key, child);
                 subscribeOutputs(child, occurrence);
             }
@@ -264,9 +300,21 @@ public final class ViewRenderer {
 
             child.outputScope(occurrence.scope());
             final var changes = applyInputs(child, occurrence.inputs());
-            runPreRenderHooks(child, changes);
-            renderView(tree, child, new ProjectionSlots(registry.template(child.def().type()).parsed().ngContentSelectors(),
-                    occurrence.projectedNodes(), occurrence.projection()));
+            if (!changes.isEmpty()) child.markDirty();
+            final var slots = new ProjectionSlots(registry.template(child.def().type()).parsed().ngContentSelectors(),
+                    occurrence.projectedNodes(), occurrence.projection());
+            child.projectionSlots(slots);
+            // Angular checks children of a refreshed view in Global mode: Default always, OnPush only when dirty.
+            final var refresh = detector == null || created || child.def().changeDetection() == ChangeDetectionStrategy.DEFAULT || child.isDirty();
+            if (refresh && child.isAttached()) {
+                runPreRenderHooks(child, changes);
+                renderView(tree, child, slots, detector);
+            } else {
+                runPreRenderHooks(child, changes);
+                for (final var grandchild : List.copyOf(child.children().values())) {
+                    detector.check(grandchild, false);
+                }
+            }
             return new RenderedComponent(child.marker(), child.instance());
         }
 
@@ -277,6 +325,9 @@ public final class ViewRenderer {
                 child.subscriptions().add(def.subscribe(child.instance(), value -> {
                     final var scope = child.outputScope().with("$event", value);
                     final var context = EvaluationContext.of(view.instance()).withPipes(registry).withScope(scope);
+                    for (var current = view; current != null; current = current.parent()) {
+                        current.markDirty();
+                    }
                     Signals.untracked(() -> {
                         // A two-way binding's "handler" is the target expression itself.
                         if (output.type() == dev.isira.jaspring.template.ast.EventType.TWO_WAY) {

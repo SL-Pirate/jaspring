@@ -13,12 +13,32 @@ def require(condition, message):
         raise SystemExit(message)
 
 
+def verify_file(path, require_signatures):
+    require(path.is_file() and path.stat().st_size > 0, f"Missing artifact: {path}")
+    for algorithm in ("md5", "sha1"):
+        checksum = Path(f"{path}.{algorithm}")
+        require(checksum.is_file(), f"Missing checksum: {checksum}")
+        require(checksum.read_text().strip() == hashlib.new(algorithm, path.read_bytes()).hexdigest(),
+                f"Invalid checksum: {checksum}")
+    if require_signatures:
+        signature = Path(f"{path}.asc")
+        require(signature.is_file() and "BEGIN PGP SIGNATURE" in signature.read_text(),
+                f"Missing armored signature: {signature}")
+
+
+def published_version(directory, version):
+    if not version.endswith("-SNAPSHOT"):
+        return version
+    snapshot = ET.parse(directory / "maven-metadata.xml").getroot().find("versioning/snapshot")
+    return f"{version.removesuffix('SNAPSHOT')}{snapshot.findtext('timestamp')}-{snapshot.findtext('buildNumber')}"
+
+
 def verify(repository, version, require_signatures):
-    artifacts = {"jaspring-core", "jaspring-spring-boot-starter"}
+    artifacts = {"jaspring-core", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
     group = repository / "dev/isira"
     require(group.is_dir(), f"Missing repository group: {group}")
-    require({path.name for path in group.iterdir() if path.is_dir()} == artifacts,
-            "Only core and the Spring Boot starter should be published")
+    require({path.name for path in group.iterdir() if path.is_dir()} == artifacts | {"jaspring"},
+            "Only core, the Spring Boot starter, Gradle plugin and its marker group should be published")
     if version is None:
         version = ET.parse(group / "jaspring-core/maven-metadata.xml").findtext("versioning/latest")
         require(version, "No latest core version in repository metadata")
@@ -27,23 +47,11 @@ def verify(repository, version, require_signatures):
     for artifact in sorted(artifacts):
         directory = group / artifact / version
         require(directory.is_dir(), f"Missing version directory: {directory}")
-        file_version = version
-        if version.endswith("-SNAPSHOT"):
-            snapshot = ET.parse(directory / "maven-metadata.xml").getroot().find("versioning/snapshot")
-            file_version = f"{version.removesuffix('SNAPSHOT')}{snapshot.findtext('timestamp')}-{snapshot.findtext('buildNumber')}"
+        file_version = published_version(directory, version)
         base = f"{artifact}-{file_version}"
         for suffix in (".pom", ".module", ".jar", "-sources.jar", "-javadoc.jar"):
             path = directory / (base + suffix)
-            require(path.is_file() and path.stat().st_size > 0, f"Missing artifact: {path}")
-            for algorithm in ("md5", "sha1"):
-                checksum = Path(f"{path}.{algorithm}")
-                require(checksum.is_file(), f"Missing checksum: {checksum}")
-                require(checksum.read_text().strip() == hashlib.new(algorithm, path.read_bytes()).hexdigest(),
-                        f"Invalid checksum: {checksum}")
-            if require_signatures:
-                signature = Path(f"{path}.asc")
-                require(signature.is_file() and "BEGIN PGP SIGNATURE" in signature.read_text(),
-                        f"Missing armored signature: {signature}")
+            verify_file(path, require_signatures)
 
         pom = ET.parse(directory / (base + ".pom")).getroot()
         for element, expected in (("groupId", "dev.isira"), ("artifactId", artifact), ("version", version)):
@@ -65,8 +73,10 @@ def verify(repository, version, require_signatures):
             require(core is not None and core.findtext("m:version", namespaces=ns) == version,
                     "Starter must depend on the matching core version")
             require("spring-boot-starter-websocket" not in dependencies, "WebSocket support must remain optional")
-        else:
+        elif artifact == "jaspring-core":
             require("polyglot" in dependencies and "js-community" in dependencies, "Missing GraalJS dependencies")
+        else:
+            require(not dependencies, "The Gradle plugin must not depend on Jaspring's runtime or test libraries")
 
         metadata = json.loads((directory / (base + ".module")).read_text())
         require(all(metadata["component"].get(key) == value for key, value in
@@ -79,12 +89,36 @@ def verify(repository, version, require_signatures):
                 require(required in jar.namelist(), f"Missing {required} in {artifact}{suffix}")
                 if suffix == ".jar":
                     require(any(name.endswith(".class") for name in jar.namelist()), f"Empty binary jar: {artifact}")
-                    resource = ("META-INF/jaspring/THIRD-PARTY-LICENSES.txt" if artifact == "jaspring-core"
-                                else "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+                    resource = {
+                        "jaspring-core": "META-INF/jaspring/THIRD-PARTY-LICENSES.txt",
+                        "jaspring-spring-boot-starter": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
+                        "jaspring-gradle-plugin": "META-INF/gradle-plugins/dev.isira.jaspring.properties",
+                    }[artifact]
                     require(resource in jar.namelist(), f"Missing runtime resource {resource}")
+                    if artifact == "jaspring-gradle-plugin":
+                        require("implementation-class=dev.isira.jaspring.gradle.JaspringPlugin" in jar.read(resource).decode(),
+                                "Incorrect Gradle plugin implementation class")
                 elif suffix == "-sources.jar":
                     require(any(name.endswith(".java") for name in jar.namelist()), f"Empty sources jar: {artifact}")
         print(f"Verified dev.isira:{artifact}:{version}")
+
+    marker = "dev.isira.jaspring.gradle.plugin"
+    marker_group = group / "jaspring"
+    require({path.name for path in marker_group.iterdir() if path.is_dir()} == {marker},
+            "Unexpected artifacts in plugin marker group")
+    directory = marker_group / marker / version
+    path = directory / f"{marker}-{published_version(directory, version)}.pom"
+    verify_file(path, require_signatures)
+    pom = ET.parse(path).getroot()
+    for element, expected in (("groupId", "dev.isira.jaspring"), ("artifactId", marker),
+                              ("version", version), ("packaging", "pom")):
+        require(pom.findtext(f"m:{element}", namespaces=ns) == expected, f"Incorrect marker {element}")
+    dependencies = pom.findall("m:dependencies/m:dependency", ns)
+    require(len(dependencies) == 1, "Plugin marker must have one implementation dependency")
+    for element, expected in (("groupId", "dev.isira"), ("artifactId", "jaspring-gradle-plugin"), ("version", version)):
+        require(dependencies[0].findtext(f"m:{element}", namespaces=ns) == expected,
+                f"Incorrect plugin marker dependency {element}")
+    print(f"Verified dev.isira.jaspring:{marker}:{version}")
 
 
 if __name__ == "__main__":

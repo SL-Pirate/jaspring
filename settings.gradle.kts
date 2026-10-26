@@ -6,4 +6,4 @@ dependencyResolutionManagement {
 	}
 }
 
-include("jaspring-core", "jaspring-spring-boot-starter", "jaspring-sample")
+include("jaspring-core", "jaspring-spring-boot-starter", "jaspring-sample", "jaspring-gradle-plugin")

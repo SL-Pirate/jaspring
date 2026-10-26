@@ -1,11 +1,18 @@
 # Publishing Jaspring
 
-The build publishes two Java 25 libraries:
+The build publishes two Java 25 libraries and a Gradle plugin:
 
 - `dev.isira:jaspring-core`
 - `dev.isira:jaspring-spring-boot-starter`
+- `dev.isira:jaspring-gradle-plugin` (plugin ID `dev.isira.jaspring`)
 
-The sample application and tools are not published. Both libraries include the
+The plugin also publishes its marker POM,
+`dev.isira.jaspring:dev.isira.jaspring.gradle.plugin`, so Gradle's `plugins` block
+can resolve it from Maven Central. Consumers must add `mavenCentral()` under
+`pluginManagement.repositories`; see [Gradle plugin setup](../jaspring-gradle-plugin/README.md).
+Publishing to the Gradle Plugin Portal is not required and is not configured here.
+
+The sample application and tools are not published. All three artifacts include the
 binary, sources, Javadoc, POM and Gradle module metadata. The POMs include project,
 developer, MIT license and SCM information. Jars include Jaspring's license;
 bundled JavaScript retains its upstream license texts.
@@ -25,7 +32,7 @@ use the committed JavaScript bundle and do not need Node or pnpm.
 python3 tools/verify-publications.py
 ```
 
-Tests run across all three modules. The repository under `build/repo` lets you
+Tests run across all four modules. The repository under `build/repo` lets you
 inspect the generated files without uploading anything or changing Maven Local.
 The Python 3 verifier checks artifact coverage, metadata, dependency relationships,
 checksums, sources, Javadoc and packaged resources. Without `--version`, it selects
@@ -88,7 +95,7 @@ The first command needs no signing credentials; the second needs the signing key
 the upload also needs the Portal token. The verifier checks that signature files
 exist and are armored; Central verifies their validity and public-key availability.
 
-`publishToMavenCentral` uploads both modules into a deployment for review. Open
+`publishToMavenCentral` uploads the libraries, Gradle plugin and marker into a deployment for review. Open
 [Central Portal deployments](https://central.sonatype.com/publishing/deployments),
 wait for successful validation, inspect the artifacts, and click **Publish**.
 Published versions cannot be replaced. Tag the released commit with its version,

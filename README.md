@@ -38,6 +38,7 @@ class HomeController {
 |---|---|
 | `jaspring-core` | signals, zone, change detection, template pipeline, component model, live pages |
 | `jaspring-spring-boot-starter` | auto-configuration, `JaspringView`, layout, transports, client shim |
+| `jaspring-gradle-plugin` | `generateComponent` task for Java classes, HTML templates and CSS |
 | `jaspring-sample` | demo app: counter, todos, async users with OnPush cards, pipes |
 | `tools/js-bundle` | builds the committed Angular compiler + PostCSS bundle (framework developers only) |
 | `tools/intellij-plugin` | standalone IntelliJ IDEA support for Java-backed templates |
@@ -73,6 +74,19 @@ uses HTTP. Run with `--enable-native-access=ALL-UNNAMED` for GraalJS native acce
 GraalVM JDK 25 enables the optimizing runtime; other Java 25 JDKs use the interpreter.
 
 For local installation and Maven Central releases, see [Publishing](docs/publishing.md).
+
+## Generate a component
+
+Apply the `dev.isira.jaspring` Gradle plugin, then run:
+
+```sh
+./gradlew generateComponent --name=user-card --package=com.example.components
+```
+
+This creates `UserCardComponent.java`, `user-card.component.html` and
+`user-card.component.css` in matching Java/resource package paths. Familiar Angular
+CLI options include `--flat`, `--prefix`, `--inline-template`, `--inline-style` and
+`--change-detection=OnPush`. See [Gradle plugin setup and options](jaspring-gradle-plugin/README.md).
 
 ## Run the sample
 

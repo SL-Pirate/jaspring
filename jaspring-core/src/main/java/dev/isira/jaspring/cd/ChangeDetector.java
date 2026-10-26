@@ -39,6 +39,19 @@ public final class ChangeDetector {
         throw new IllegalStateException("Infinite change detection: still dirty after " + MAX_PASSES + " passes");
     }
 
+    /// After creation every view is freshly rendered; only effects and what they dirtied need another pass.
+    public void settle() {
+        final var root = tree.root();
+        if (root == null) return;
+        for (var pass = 0; pass < MAX_PASSES; pass++) {
+            effects.flush();
+            if (!hasDirty(root)) return;
+            check(root, false);
+            if (!effects.hasDirtyEffects() && !hasDirty(root)) return;
+        }
+        throw new IllegalStateException("Infinite change detection: still dirty after " + MAX_PASSES + " passes");
+    }
+
     /// Angular's `detectChangesInView`: refresh when the mode says so or the view is dirty, otherwise descend
     /// to dirty descendants. A refreshed view re-renders its children through its template.
     public void check(ComponentView view, boolean global) {

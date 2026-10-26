@@ -50,6 +50,9 @@ public final class TemplateRenderer {
         new Frame(context, out, host, viewKey, null).renderChildren(nodes);
     }
 
+    /// The value an enclosing `<select [ngModel]>` holds, so `<option>` children can render `selected`.
+    private record SelectState(Object value, boolean multiple) {}
+
     /// Tracks which `@switch`/`[ngSwitch]` the current nodes belong to and whether any case already matched.
     private static final class SwitchState {
         final Object value;
@@ -70,21 +73,31 @@ public final class TemplateRenderer {
         private final RenderHost host;
         private final String viewKey;
         private final SwitchState switchState;
+        private final SelectState selectState;
 
         Frame(EvaluationContext context, HtmlWriter out, RenderHost host, String viewKey, SwitchState switchState) {
+            this(context, out, host, viewKey, switchState, null);
+        }
+
+        Frame(EvaluationContext context, HtmlWriter out, RenderHost host, String viewKey, SwitchState switchState, SelectState selectState) {
             this.context = context;
             this.out = out;
             this.host = host;
             this.viewKey = viewKey;
             this.switchState = switchState;
+            this.selectState = selectState;
         }
 
         Frame view(Map<String, Object> locals, String keySegment) {
-            return new Frame(context.withScope(context.scope().child(locals)), out, host, viewKey + keySegment, switchState);
+            return new Frame(context.withScope(context.scope().child(locals)), out, host, viewKey + keySegment, switchState, selectState);
         }
 
         Frame withSwitch(SwitchState state) {
-            return new Frame(context, out, host, viewKey, state);
+            return new Frame(context, out, host, viewKey, state, selectState);
+        }
+
+        Frame withSelect(SelectState state) {
+            return new Frame(context, out, host, viewKey, switchState, state);
         }
 
         void renderView(List<TemplateNode> nodes) {
@@ -223,12 +236,24 @@ public final class TemplateRenderer {
             }
 
             final var isContainer = tagName.equals("ng-container");
+            final var hasModel = directiveInputs.containsKey("ngModel");
+            if (hasModel) {
+                textContent = NgModel.reflect(tagName, attributes, directiveInputs.get("ngModel"), textContent);
+            }
+            if (tagName.equals("option") && selectState != null) {
+                NgModel.markSelected(attributes, selectState.value(), selectState.multiple(), textContent, element);
+            }
             if (!isContainer) {
                 final var eventMarkers = new ArrayList<String>();
+                final var modelMarkers = new ArrayList<String>();
                 for (final var output : element.outputs()) {
                     if (output.type() == EventType.LEGACY_ANIMATION || output.type() == EventType.ANIMATION) continue;
                     final var ref = host.registerHandler(output, context.scope());
                     if (ref == null) continue;
+                    if (output.name().equals("ngModelChange")) {
+                        modelMarkers.add(ref);
+                        continue;
+                    }
                     final var target = output.target() == null ? "" : output.target() + ":";
                     eventMarkers.add(target + output.name() + ":" + ref + HandlerFlags.analyze(output.handler()).suffix());
                 }
@@ -241,6 +266,7 @@ public final class TemplateRenderer {
                 if (styleAttribute != null) out.attribute("style", styleAttribute);
                 if (host.contentAttribute() != null) out.attribute(host.contentAttribute(), "");
                 if (!eventMarkers.isEmpty()) out.attribute("data-jsp-on", String.join(" ", eventMarkers));
+                if (!modelMarkers.isEmpty()) out.attribute("data-jsp-model", String.join(" ", modelMarkers));
                 out.closeStartTag();
             }
 
@@ -256,9 +282,12 @@ public final class TemplateRenderer {
             } else if (directiveInputs.containsKey("ngTemplateOutlet")) {
                 outlet(directiveInputs.get("ngTemplateOutlet"), directiveInputs.get("ngTemplateOutletContext"));
             } else {
-                final var frame = directiveInputs.containsKey("ngSwitch")
+                var frame = directiveInputs.containsKey("ngSwitch")
                         ? withSwitch(new SwitchState(directiveInputs.get("ngSwitch"), anySwitchCaseMatches(element.children(), directiveInputs.get("ngSwitch"))))
                         : this;
+                if (tagName.equals("select") && hasModel) {
+                    frame = frame.withSelect(new SelectState(directiveInputs.get("ngModel"), attributes.containsKey("multiple")));
+                }
                 frame.renderChildren(element.children());
             }
             if (!isContainer) out.closeTag(tagName);

@@ -24,7 +24,8 @@ public final class SimpleChanges {
         return changes.isEmpty();
     }
 
+    /// In binding order, like the template lists the inputs.
     public Map<String, SimpleChange> asMap() {
-        return Map.copyOf(changes);
+        return java.util.Collections.unmodifiableMap(changes);
     }
 }

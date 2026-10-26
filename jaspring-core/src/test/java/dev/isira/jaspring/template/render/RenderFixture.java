@@ -25,7 +25,7 @@ final class RenderFixture {
 
     static String render(String template, Object component, RenderHost host) {
         final var nodes = PARSER.parse(template, "test.html", ParseOptions.defaults()).nodes();
-        return new TemplateRenderer(SCHEMA, host).render(nodes, EvaluationContext.of(component));
+        return new TemplateRenderer(SCHEMA).render(nodes, EvaluationContext.of(component), host);
     }
 
     /// Hands out sequential handler refs and records what was registered.

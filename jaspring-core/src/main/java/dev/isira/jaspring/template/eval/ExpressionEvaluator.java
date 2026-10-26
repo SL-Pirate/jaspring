@@ -27,6 +27,11 @@ public final class ExpressionEvaluator {
         return value(expr, context);
     }
 
+    /// Writes `value` to the expression a two-way binding targets (`[(x)]="a.b"` assigns to `a.b` on `xChange`).
+    public static void assignTo(Expr target, Object value, EvaluationContext context) {
+        store(assignmentTarget(target), value, context);
+    }
+
     private static Object value(Expr expr, EvaluationContext ctx) {
         final var result = eval(expr, ctx);
         return result == SHORT_CIRCUIT ? null : result;

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import dev.isira.jaspring.component.ComponentDef;
 import dev.isira.jaspring.template.ast.EventType;
 import dev.isira.jaspring.template.ast.SecurityContext;
 import dev.isira.jaspring.template.ast.TemplateNode;
@@ -28,22 +29,25 @@ public final class TemplateRenderer {
             "ngClass", "ngStyle", "ngSwitch", "ngTemplateOutlet", "ngTemplateOutletContext", "ngTemplateOutletInjector",
             "ngModel", "ngModelOptions", "ngNonBindable");
 
-    private final RenderHost host;
     private final PropertyReflection reflection;
 
-    public TemplateRenderer(DomSchema schema, RenderHost host) {
-        this.host = host;
+    public TemplateRenderer(DomSchema schema) {
         this.reflection = new PropertyReflection(schema);
     }
 
-    public String render(List<TemplateNode> nodes, EvaluationContext context) {
+    public String render(List<TemplateNode> nodes, EvaluationContext context, RenderHost host) {
         final var out = new HtmlWriter();
-        render(nodes, context, out);
+        render(nodes, context, out, host);
         return out.toString();
     }
 
-    public void render(List<TemplateNode> nodes, EvaluationContext context, HtmlWriter out) {
-        new Frame(context, out, "", null).renderView(nodes);
+    public void render(List<TemplateNode> nodes, EvaluationContext context, HtmlWriter out, RenderHost host) {
+        new Frame(context, out, host, "", null).renderView(nodes);
+    }
+
+    /// Renders projected nodes with the declaring view's context and host, into another view's writer.
+    public void renderProjected(List<TemplateNode> nodes, EvaluationContext context, HtmlWriter out, RenderHost host, String viewKey) {
+        new Frame(context, out, host, viewKey, null).renderChildren(nodes);
     }
 
     /// Tracks which `@switch`/`[ngSwitch]` the current nodes belong to and whether any case already matched.
@@ -63,22 +67,24 @@ public final class TemplateRenderer {
 
         private final EvaluationContext context;
         private final HtmlWriter out;
+        private final RenderHost host;
         private final String viewKey;
         private final SwitchState switchState;
 
-        Frame(EvaluationContext context, HtmlWriter out, String viewKey, SwitchState switchState) {
+        Frame(EvaluationContext context, HtmlWriter out, RenderHost host, String viewKey, SwitchState switchState) {
             this.context = context;
             this.out = out;
+            this.host = host;
             this.viewKey = viewKey;
             this.switchState = switchState;
         }
 
         Frame view(Map<String, Object> locals, String keySegment) {
-            return new Frame(context.withScope(context.scope().child(locals)), out, viewKey + keySegment, switchState);
+            return new Frame(context.withScope(context.scope().child(locals)), out, host, viewKey + keySegment, switchState);
         }
 
         Frame withSwitch(SwitchState state) {
-            return new Frame(context, out, viewKey, state);
+            return new Frame(context, out, host, viewKey, state);
         }
 
         void renderView(List<TemplateNode> nodes) {
@@ -123,7 +129,9 @@ public final class TemplateRenderer {
                 case TemplateNode.SwitchBlock block -> switchBlock(block);
                 case TemplateNode.DeferredBlock block -> deferBlock(block);
                 case TemplateNode.Icu icu -> new IcuRenderer(icu, this::switchValue, this::render, out).render();
-                case TemplateNode.Content content -> throw new UnsupportedOperationException("ng-content rendering is not implemented yet");
+                case TemplateNode.Content content -> {
+                    if (!host.renderContent(content.selector(), out)) renderChildren(content.children());
+                }
                 case TemplateNode.UnknownBlock block -> throw new IllegalStateException("Unknown block @" + block.name());
                 default -> throw new IllegalStateException("Unexpected node " + node.getClass().getSimpleName());
             }
@@ -146,6 +154,17 @@ public final class TemplateRenderer {
 
         private void element(TemplateNode.Element element) {
             final var tagName = localName(element.name());
+            if (!tagName.equals("ng-container")) {
+                final var staticAttributes = new LinkedHashMap<String, String>();
+                element.attributes().forEach(a -> staticAttributes.put(localName(a.name()), a.value()));
+                final var boundNames = new java.util.HashSet<String>();
+                element.inputs().forEach(i -> boundNames.add(i.name()));
+                final var def = host.matchComponent(tagName, staticAttributes, boundNames);
+                if (def != null) {
+                    component(element, def, tagName, staticAttributes);
+                    return;
+                }
+            }
             final var directiveInputs = new LinkedHashMap<String, Object>();
             final var attributes = new LinkedHashMap<String, String>();
             final var styles = new StyleBindings();
@@ -157,6 +176,7 @@ public final class TemplateRenderer {
                 switch (name) {
                     case "class" -> styles.staticClass(attribute.value());
                     case "style" -> styles.staticStyle(attribute.value());
+                    case "ngProjectAs" -> { }
                     default -> attributes.put(name, attribute.value());
                 }
             }
@@ -242,6 +262,92 @@ public final class TemplateRenderer {
                 frame.renderChildren(element.children());
             }
             if (!isContainer) out.closeTag(tagName);
+        }
+
+        /// A component element: inputs are evaluated here in the parent's scope, everything else on the element
+        /// (static attributes, attr/class/style bindings, native events) belongs to the host tag the parent renders.
+        private void component(TemplateNode.Element element, ComponentDef def, String tagName, Map<String, String> staticAttributes) {
+            final var inputs = new LinkedHashMap<String, Object>();
+            final var attributes = new LinkedHashMap<String, String>();
+            final var styles = new StyleBindings();
+            for (final var attribute : element.attributes()) {
+                final var name = localName(attribute.name());
+                switch (name) {
+                    case "class" -> styles.staticClass(attribute.value());
+                    case "style" -> styles.staticStyle(attribute.value());
+                    case "ngProjectAs" -> { }
+                    default -> {
+                        if (def.inputs().containsKey(name)) inputs.put(name, attribute.value());
+                        attributes.put(name, attribute.value());
+                    }
+                }
+            }
+            for (final var input : element.inputs()) {
+                final var value = eval(input.value());
+                switch (input.type()) {
+                    case PROPERTY, TWO_WAY -> {
+                        if (def.inputs().containsKey(input.name())) {
+                            inputs.put(input.name(), value);
+                        } else if (input.name().equals("class") || input.name().equals("ngClass")) {
+                            styles.classValue(value);
+                        } else if (input.name().equals("style") || input.name().equals("ngStyle")) {
+                            styles.styleValue(value);
+                        } else {
+                            final var reflected = reflection.reflect("unknown", input.name());
+                            if (reflected.kind() == PropertyReflection.Kind.ATTRIBUTE || reflected.kind() == PropertyReflection.Kind.BOOLEAN_ATTRIBUTE) {
+                                final var text = DomSanitizer.INSTANCE.sanitize(input.securityContext(), value);
+                                if (reflected.kind() == PropertyReflection.Kind.BOOLEAN_ATTRIBUTE) {
+                                    if (Js.truthy(value)) attributes.put(reflected.attribute(), ""); else attributes.remove(reflected.attribute());
+                                } else if (text == null) {
+                                    attributes.remove(reflected.attribute());
+                                } else {
+                                    attributes.put(reflected.attribute(), text);
+                                }
+                            }
+                        }
+                    }
+                    case ATTRIBUTE -> {
+                        final var text = DomSanitizer.INSTANCE.sanitize(input.securityContext(), value);
+                        final var name = localName(input.name());
+                        if (text == null) attributes.remove(name); else attributes.put(name, text);
+                    }
+                    case CLASS -> styles.toggle(input.name(), Js.truthy(value));
+                    case STYLE -> styles.style(input.name(), input.unit(), value);
+                    case LEGACY_ANIMATION, ANIMATION -> { }
+                }
+            }
+            final var classAttribute = styles.classAttribute();
+            final var styleAttribute = styles.styleAttribute();
+            if (classAttribute != null) attributes.put("class", classAttribute);
+            if (styleAttribute != null) attributes.put("style", styleAttribute);
+
+            final var outputs = new ArrayList<TemplateNode.BoundEvent>();
+            final var nativeEvents = new ArrayList<String>();
+            for (final var output : element.outputs()) {
+                if (output.type() == EventType.LEGACY_ANIMATION || output.type() == EventType.ANIMATION) continue;
+                if (def.outputs().containsKey(output.name()) && output.target() == null) {
+                    outputs.add(output);
+                    continue;
+                }
+                final var ref = host.registerHandler(output, context.scope());
+                if (ref == null) continue;
+                final var target = output.target() == null ? "" : output.target() + ":";
+                nativeEvents.add(target + output.name() + ":" + ref + HandlerFlags.analyze(output.handler()).suffix());
+            }
+
+            final var projectionContext = context;
+            final var projectionHost = host;
+            final var projectionKey = viewKey + "/content" + element.sourceSpan().start();
+            final RenderHost.Projection projection = (nodes, writer) -> renderProjected(nodes, projectionContext, writer, projectionHost, projectionKey);
+
+            final var occurrence = new RenderHost.ComponentOccurrence(def, element, viewKey + "@" + element.sourceSpan().start(),
+                    java.util.Collections.unmodifiableMap(inputs), attributes, List.copyOf(outputs), List.copyOf(nativeEvents), element.children(),
+                    projection, context.scope());
+            final var rendered = host.renderComponent(occurrence);
+            for (final var reference : element.references()) {
+                context.scope().define(reference.name(), rendered.instance());
+            }
+            out.raw(rendered.markup());
         }
 
         // ---------------- <ng-template> and structural directives ----------------
@@ -352,7 +458,7 @@ public final class TemplateRenderer {
                 scope.put(variable.name(), locals.getOrDefault(variable.value().isEmpty() ? "$implicit" : variable.value(), JsUndefined.INSTANCE));
             }
             // The outlet renders in the declaring view's scope, not the caller's, like Angular.
-            new Frame(context.withScope(ref.declarationScope().child(scope)), out, viewKey + keySegment, switchState)
+            new Frame(context.withScope(ref.declarationScope().child(scope)), out, host, viewKey + keySegment, switchState)
                     .renderEmbedded(ref.nodes());
         }
 
@@ -481,7 +587,7 @@ public final class TemplateRenderer {
     }
 
     /// Angular names namespaced elements and attributes `:svg:circle` / `:xlink:href`.
-    static String localName(String name) {
+    public static String localName(String name) {
         if (!name.startsWith(":")) return name;
         final var second = name.indexOf(':', 1);
         final var namespace = name.substring(1, second);

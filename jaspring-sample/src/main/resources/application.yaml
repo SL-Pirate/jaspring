@@ -4,3 +4,6 @@ spring:
   threads:
     virtual:
       enabled: true
+
+jaspring:
+  dev-mode: true

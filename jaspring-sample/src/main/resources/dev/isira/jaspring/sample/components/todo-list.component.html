@@ -1,0 +1,20 @@
+<section>
+  <h2>Todos ({{ remaining() }} left)</h2>
+  <form (submit)="add()">
+    <input [(ngModel)]="draft" placeholder="What needs doing?" autocomplete="off">
+    <button type="submit" [disabled]="!draft.trim()">Add</button>
+  </form>
+  <ul>
+    @for (todo of todos(); track todo.id(); let i = $index) {
+      <li [class.done]="todo.done()">
+        <label>
+          <input type="checkbox" [checked]="todo.done()" (change)="toggle(todo)">
+          <span>{{ i + 1 }}. {{ todo.title() | titlecase }}</span>
+        </label>
+        <button (click)="remove(todo)" title="remove">x</button>
+      </li>
+    } @empty {
+      <li class="hint">Nothing to do.</li>
+    }
+  </ul>
+</section>

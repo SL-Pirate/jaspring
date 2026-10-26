@@ -1,0 +1,11 @@
+<section>
+  <h2>Signals</h2>
+  <button (click)="count.update(c => c - 1)">-</button>
+  <span class="count">{{ count() }}</span>
+  <button (click)="count.set(count() + 1)">+</button>
+  <button (click)="reset()" [disabled]="count() === 0">reset</button>
+  <p>Doubled through <code>computed()</code>: {{ doubled() }}</p>
+  @if (count() > 5) {
+    <p class="hint">That is more than five.</p>
+  }
+</section>

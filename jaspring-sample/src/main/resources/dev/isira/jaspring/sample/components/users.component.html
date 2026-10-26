@@ -1,0 +1,13 @@
+<section>
+  <h2>Async data + OnPush</h2>
+  <p>Chosen: <b>{{ chosen() }}</b> <span class="renders">(parent rendered {{ renderCount() }}x)</span></p>
+  @if (users() === null) {
+    <p class="hint">Loading users from a slow directory...</p>
+  } @else {
+    @for (user of users(); track user) {
+      <app-user-card [name]="user" [role]="user === chosen() ? 'chosen' : 'member'" (selected)="chosen.set($event)">
+        <p>Projected content for {{ user }}.</p>
+      </app-user-card>
+    }
+  }
+</section>

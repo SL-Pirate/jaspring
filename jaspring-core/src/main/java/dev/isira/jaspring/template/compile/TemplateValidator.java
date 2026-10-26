@@ -140,11 +140,13 @@ final class TemplateValidator {
                     element.startSourceSpan());
         }
 
+        final var directives = structural ? List.<dev.isira.jaspring.component.DirectiveDef>of() : registry.matchDirectives(tagName, attributes, boundNames);
         for (final var input : element.inputs()) {
             expr(input.value(), scope);
             if (input.type() != BindingType.PROPERTY && input.type() != BindingType.TWO_WAY) continue;
             final var name = input.name();
             final var known = DIRECTIVE_INPUTS.contains(name)
+                    || directives.stream().anyMatch(d -> d.inputs().containsKey(name))
                     || (component != null && component.inputs().containsKey(name))
                     || schema.hasProperty(component == null ? tagName : "unknown", name)
                     || def.schemas().contains(Schema.NO_ERRORS)

@@ -26,6 +26,17 @@ public interface RenderHost {
         return null;
     }
 
+    /// The attribute directives matching this element, in registration order.
+    default List<dev.isira.jaspring.component.DirectiveDef> matchDirectives(String tagName, Map<String, String> attributes, Set<String> boundNames) {
+        return List.of();
+    }
+
+    /// The directive instance for this element occurrence (created on first use, kept across renders), with its
+    /// inputs applied and its hooks run. Returns `null` when the host does not support directives.
+    default Object applyDirective(dev.isira.jaspring.component.DirectiveDef def, String elementKey, Map<String, Object> inputs) {
+        return null;
+    }
+
     /// The component whose selector matches this element, or `null` for a plain element.
     default ComponentDef matchComponent(String tagName, Map<String, String> attributes, Set<String> boundNames) {
         return null;

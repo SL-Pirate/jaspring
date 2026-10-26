@@ -25,6 +25,7 @@ public final class ComponentView {
     private final Map<String, ComponentView> children = new LinkedHashMap<>();
     private final Map<String, Object> inputs = new HashMap<>();
     private final Map<Integer, HandlerBinding> handlers = new HashMap<>();
+    private final Map<String, Object> directives = new LinkedHashMap<>();
     private final List<Subscription> subscriptions = new ArrayList<>();
     private int handlerSeq;
     private String hostTagName;
@@ -92,6 +93,11 @@ public final class ComponentView {
 
     List<Subscription> subscriptions() {
         return subscriptions;
+    }
+
+    /// Directive instances of this view's template, keyed by element occurrence and directive class.
+    Map<String, Object> directives() {
+        return directives;
     }
 
     /// The parent scope the host element was last rendered in; output handlers evaluate in it.

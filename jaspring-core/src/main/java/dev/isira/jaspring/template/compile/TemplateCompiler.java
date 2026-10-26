@@ -23,6 +23,13 @@ public final class TemplateCompiler {
         this.schema = schema;
     }
 
+    /// Turns `@HostListener("keydown.enter", ["$event"])` on method `go` into the handler `$dir.go($event)`.
+    public dev.isira.jaspring.template.ast.TemplateNode.BoundEvent compileHostListener(dev.isira.jaspring.component.DirectiveDef.HostListenerDef listener) {
+        final var template = "<a (" + listener.event() + ")=\"" + listener.source().replace("\"", "&quot;") + "\"></a>";
+        final var parsed = parser.parse(template, "host-listener", ParseOptions.defaults());
+        return ((dev.isira.jaspring.template.ast.TemplateNode.Element) parsed.nodes().get(0)).outputs().get(0);
+    }
+
     public CompiledTemplate compile(ComponentDef def, ComponentRegistry registry) {
         final var parsed = parser.parse(def.templateSource(), def.templateUrl(), new ParseOptions(def.preserveWhitespaces(), false));
         final var errors = new ArrayList<TemplateError>();

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import dev.isira.jaspring.component.ComponentDef;
+import dev.isira.jaspring.component.DirectiveDef;
 import dev.isira.jaspring.template.ast.EventType;
 import dev.isira.jaspring.template.ast.SecurityContext;
 import dev.isira.jaspring.template.ast.TemplateNode;
@@ -194,6 +195,11 @@ public final class TemplateRenderer {
                 }
             }
 
+            final var boundNames = new java.util.HashSet<String>();
+            element.inputs().forEach(i -> boundNames.add(i.name()));
+            final var directives = tagName.equals("ng-container") ? List.<DirectiveDef>of() : host.matchDirectives(tagName, attributes, boundNames);
+            final var customDirectiveInputs = new LinkedHashMap<String, Object>();
+
             for (final var input : element.inputs()) {
                 final var value = eval(input.value());
                 switch (input.type()) {
@@ -206,6 +212,10 @@ public final class TemplateRenderer {
                             default -> {
                                 if (DIRECTIVE_INPUTS.contains(input.name())) {
                                     directiveInputs.put(input.name(), value);
+                                    continue;
+                                }
+                                if (directives.stream().anyMatch(d -> d.inputs().containsKey(input.name()))) {
+                                    customDirectiveInputs.put(input.name(), value);
                                     continue;
                                 }
                                 final var reflected = reflection.reflect(tagName, input.name());
@@ -235,6 +245,9 @@ public final class TemplateRenderer {
                 }
             }
 
+            final var directiveMarkers = new ArrayList<String>();
+            applyDirectives(directives, element, attributes, styles, customDirectiveInputs, directiveMarkers);
+
             final var isContainer = tagName.equals("ng-container");
             final var hasModel = directiveInputs.containsKey("ngModel");
             if (hasModel) {
@@ -244,7 +257,7 @@ public final class TemplateRenderer {
                 NgModel.markSelected(attributes, selectState.value(), selectState.multiple(), textContent, element);
             }
             if (!isContainer) {
-                final var eventMarkers = new ArrayList<String>();
+                final var eventMarkers = new ArrayList<String>(directiveMarkers);
                 final var modelMarkers = new ArrayList<String>();
                 for (final var output : element.outputs()) {
                     if (output.type() == EventType.LEGACY_ANIMATION || output.type() == EventType.ANIMATION) continue;
@@ -345,13 +358,25 @@ public final class TemplateRenderer {
                     case LEGACY_ANIMATION, ANIMATION -> { }
                 }
             }
+            final var hostBoundNames = new java.util.HashSet<String>();
+            element.inputs().forEach(i -> hostBoundNames.add(i.name()));
+            final var hostDirectives = host.matchDirectives(tagName, staticAttributes, hostBoundNames);
+            final var hostDirectiveInputs = new LinkedHashMap<String, Object>();
+            for (final var input : element.inputs()) {
+                if (!def.inputs().containsKey(input.name()) && hostDirectives.stream().anyMatch(d -> d.inputs().containsKey(input.name()))) {
+                    hostDirectiveInputs.put(input.name(), eval(input.value()));
+                    attributes.remove(PropertyReflection.attributeName(input.name()));
+                }
+            }
+            final var nativeEvents = new ArrayList<String>();
+            applyDirectives(hostDirectives, element, attributes, styles, hostDirectiveInputs, nativeEvents);
+
             final var classAttribute = styles.classAttribute();
             final var styleAttribute = styles.styleAttribute();
             if (classAttribute != null) attributes.put("class", classAttribute);
             if (styleAttribute != null) attributes.put("style", styleAttribute);
 
             final var outputs = new ArrayList<TemplateNode.BoundEvent>();
-            final var nativeEvents = new ArrayList<String>();
             for (final var output : element.outputs()) {
                 if (output.type() == EventType.LEGACY_ANIMATION || output.type() == EventType.ANIMATION) continue;
                 if (def.outputs().containsKey(output.name()) && output.target() == null) {
@@ -377,6 +402,62 @@ public final class TemplateRenderer {
                 context.scope().define(reference.name(), rendered.instance());
             }
             out.raw(rendered.markup());
+        }
+
+        /// Applies matched attribute directives: inputs from static attributes and bindings, hooks, then host
+        /// bindings onto the element and host listeners as event markers.
+        private void applyDirectives(List<DirectiveDef> directives, TemplateNode.Element element, Map<String, String> attributes,
+                StyleBindings styles, Map<String, Object> boundInputs, List<String> markers) {
+            if (directives.isEmpty()) return;
+            final var elementKey = viewKey + "@" + element.sourceSpan().start();
+            for (final var def : directives) {
+                final var inputs = new LinkedHashMap<String, Object>();
+                attributes.forEach((name, value) -> {
+                    if (def.inputs().containsKey(name)) inputs.put(name, value);
+                });
+                boundInputs.forEach((name, value) -> {
+                    if (def.inputs().containsKey(name)) inputs.put(name, value);
+                });
+                final var instance = host.applyDirective(def, elementKey + ":" + def.name(), inputs);
+                if (instance == null) continue;
+                for (final var binding : def.hostBindings()) {
+                    hostBinding(binding.target(), binding.read(instance), attributes, styles);
+                }
+                for (final var listener : def.hostListeners()) {
+                    final var ref = host.registerHandler(listener.handler(), context.scope().with("$dir", instance));
+                    if (ref == null) continue;
+                    final var target = listener.handler().target() == null ? "" : listener.handler().target() + ":";
+                    markers.add(target + listener.handler().name() + ":" + ref + HandlerFlags.analyze(listener.handler().handler()).suffix());
+                }
+            }
+        }
+
+        private void hostBinding(String target, Object value, Map<String, String> attributes, StyleBindings styles) {
+            if (target.startsWith("class.")) {
+                styles.toggle(target.substring(6), Js.truthy(value));
+            } else if (target.startsWith("attr.")) {
+                final var name = target.substring(5);
+                if (Js.isNullish(value)) attributes.remove(name); else attributes.put(name, Js.toJsString(value));
+            } else if (target.startsWith("style.")) {
+                final var rest = target.substring(6);
+                final var dot = rest.indexOf('.');
+                styles.style(dot < 0 ? rest : rest.substring(0, dot), dot < 0 ? null : rest.substring(dot + 1), value);
+            } else if (target.equals("class") || target.equals("className")) {
+                styles.classValue(value);
+            } else if (target.equals("style")) {
+                styles.styleValue(value);
+            } else {
+                final var reflected = reflection.reflect("unknown", target);
+                switch (reflected.kind()) {
+                    case BOOLEAN_ATTRIBUTE -> {
+                        if (Js.truthy(value)) attributes.put(reflected.attribute(), ""); else attributes.remove(reflected.attribute());
+                    }
+                    case ATTRIBUTE -> {
+                        if (Js.isNullish(value)) attributes.remove(reflected.attribute()); else attributes.put(reflected.attribute(), Js.toJsString(value));
+                    }
+                    default -> { }
+                }
+            }
         }
 
         // ---------------- <ng-template> and structural directives ----------------

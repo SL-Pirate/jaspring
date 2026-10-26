@@ -66,14 +66,22 @@ public final class ViewRenderer {
         renderView(tree, view, null);
     }
 
+    private final Map<ComponentView, Map<String, Map<String, Object>>> directiveInputs = new java.util.WeakHashMap<>();
+
+    private Map<String, Map<String, Object>> directiveInputsOf(ComponentView view) {
+        return directiveInputs.computeIfAbsent(view, v -> new java.util.HashMap<>());
+    }
+
     private void renderView(ViewTree tree, ComponentView view, ProjectionSlots slots) {
         final var visited = new HashSet<String>();
         view.clearHandlers();
         final var out = new HtmlWriter();
         final var context = EvaluationContext.of(view.instance()).withPipes(registry);
-        renderer.render(registry.template(view.def().type()).parsed().nodes(), context, out, new ViewHost(tree, view, visited, slots));
+        final var host = new ViewHost(tree, view, visited, slots);
+        renderer.render(registry.template(view.def().type()).parsed().nodes(), context, out, host);
         view.templateHtml(out.toString());
         view.clearDirty();
+        host.releaseUnvisitedDirectives();
         destroyUnvisitedChildren(tree, view, visited);
         if (!view.isViewInitialized()) {
             view.markViewInitialized();
@@ -104,6 +112,11 @@ public final class ViewRenderer {
         }
         view.children().clear();
         view.markDestroyed();
+        for (final var directive : view.directives().values()) {
+            if (directive instanceof OnDestroy hook) hook.ngOnDestroy();
+            registry.factory().destroy(directive);
+        }
+        view.directives().clear();
         view.subscriptions().forEach(dev.isira.jaspring.signals.Subscription::unsubscribe);
         if (view.instance() instanceof OnDestroy hook) hook.ngOnDestroy();
         registry.factory().destroy(view.instance());
@@ -158,6 +171,8 @@ public final class ViewRenderer {
         private final ViewTree tree;
         private final ComponentView view;
         private final Set<String> visited;
+        private final Set<String> visitedDirectives = new HashSet<>();
+        private final Map<String, Map<String, Object>> directiveInputs;
         private final ProjectionSlots projected;
 
         ViewHost(ViewTree tree, ComponentView view, Set<String> visited) {
@@ -169,6 +184,18 @@ public final class ViewRenderer {
             this.view = view;
             this.visited = visited;
             this.projected = projected;
+            this.directiveInputs = directiveInputsOf(view);
+        }
+
+        /// Destroys directive instances whose element did not render this time.
+        void releaseUnvisitedDirectives() {
+            for (final var entry : List.copyOf(view.directives().entrySet())) {
+                if (visitedDirectives.contains(entry.getKey())) continue;
+                view.directives().remove(entry.getKey());
+                directiveInputs.remove(entry.getKey());
+                if (entry.getValue() instanceof OnDestroy hook) hook.ngOnDestroy();
+                registry.factory().destroy(entry.getValue());
+            }
         }
 
         @Override
@@ -184,6 +211,38 @@ public final class ViewRenderer {
         @Override
         public ComponentDef matchComponent(String tagName, Map<String, String> attributes, Set<String> boundNames) {
             return registry.match(tagName, attributes, boundNames);
+        }
+
+        @Override
+        public List<dev.isira.jaspring.component.DirectiveDef> matchDirectives(String tagName, Map<String, String> attributes, Set<String> boundNames) {
+            return registry.matchDirectives(tagName, attributes, boundNames);
+        }
+
+        @Override
+        public Object applyDirective(dev.isira.jaspring.component.DirectiveDef def, String elementKey, Map<String, Object> inputs) {
+            visitedDirectives.add(elementKey);
+            var instance = view.directives().get(elementKey);
+            final var created = instance == null;
+            if (created) {
+                instance = registry.factory().create(def.type());
+                ComponentDefs.bindSignalNames(instance);
+                view.directives().put(elementKey, instance);
+            }
+            final var previous = directiveInputs.computeIfAbsent(elementKey, k -> new java.util.HashMap<>());
+            final var changes = new SimpleChanges();
+            for (final var entry : inputs.entrySet()) {
+                final var input = def.inputs().get(entry.getKey());
+                final var first = !previous.containsKey(entry.getKey());
+                final var old = previous.get(entry.getKey());
+                if (!first && java.util.Objects.equals(old, entry.getValue())) continue;
+                input.apply(instance, entry.getValue());
+                previous.put(entry.getKey(), entry.getValue());
+                changes.put(entry.getKey(), new SimpleChange(first ? null : old, entry.getValue(), first));
+            }
+            if (!changes.isEmpty() && instance instanceof OnChanges hook) hook.ngOnChanges(changes);
+            if (created && instance instanceof OnInit hook) hook.ngOnInit();
+            if (instance instanceof DoCheck hook) hook.ngDoCheck();
+            return instance;
         }
 
         @Override

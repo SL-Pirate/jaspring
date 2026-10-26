@@ -18,6 +18,8 @@ public final class ComponentRegistry implements PipeRegistry {
 
     private final Map<Class<?>, ComponentDef> components = new LinkedHashMap<>();
     private final Map<Class<?>, CompiledTemplate> templates = new LinkedHashMap<>();
+    private final Map<Class<?>, DirectiveDef> directives = new LinkedHashMap<>();
+    private final List<Class<?>> pendingDirectives = new ArrayList<>();
     private final Map<String, PipeDef> pipeDefs = new LinkedHashMap<>();
     private final Map<String, PipeTransform> pipes = new LinkedHashMap<>();
     private final ComponentFactory factory;
@@ -42,11 +44,34 @@ public final class ComponentRegistry implements PipeRegistry {
         pipes.put(name, pipe);
     }
 
-    /// Compiles every registered template. Fails fast with all errors of the first failing component.
+    public void registerDirective(Class<?> type) {
+        if (!directives.containsKey(type) && !pendingDirectives.contains(type)) pendingDirectives.add(type);
+    }
+
+    /// Compiles every registered directive and template. Fails fast with all errors of the first failing component.
     public void compileAll(TemplateCompiler compiler) {
+        for (final var type : List.copyOf(pendingDirectives)) {
+            directives.put(type, DirectiveDef.of(type, compiler::compileHostListener));
+        }
+        pendingDirectives.clear();
         for (final var def : components.values()) {
             templates.computeIfAbsent(def.type(), t -> compiler.compile(def, this));
         }
+    }
+
+    /// Every directive whose selector matches the element, in registration order.
+    public List<DirectiveDef> matchDirectives(String tagName, Map<String, String> attributes, Set<String> boundNames) {
+        if (directives.isEmpty()) return List.of();
+        final var candidate = CssSelector.forElement(tagName, attributes, boundNames);
+        final var matches = new ArrayList<DirectiveDef>();
+        for (final var def : directives.values()) {
+            if (def.selectors().stream().anyMatch(selector -> selector.matches(candidate))) matches.add(def);
+        }
+        return List.copyOf(matches);
+    }
+
+    public List<DirectiveDef> directives() {
+        return List.copyOf(directives.values());
     }
 
     public ComponentDef component(Class<?> type) {

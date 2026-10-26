@@ -22,9 +22,12 @@ final class ViewFixture {
         final ViewRenderer renderer;
         ComponentView root;
 
-        Page(boolean liveEvents, Class<?>... components) {
-            for (final var component : components) {
-                registry.registerComponent(component);
+        /// Accepts components, directives and pipes in any order.
+        Page(boolean liveEvents, Class<?>... types) {
+            for (final var type : types) {
+                if (type.isAnnotationPresent(dev.isira.jaspring.component.Directive.class)) registry.registerDirective(type);
+                else if (type.isAnnotationPresent(dev.isira.jaspring.component.Pipe.class)) registry.registerPipe(type);
+                else registry.registerComponent(type);
             }
             registry.compileAll(COMPILER);
             renderer = new ViewRenderer(registry, SCHEMA, liveEvents);

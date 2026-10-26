@@ -1,0 +1,13 @@
+Jaspring IntelliJ plugin
+
+BindingName.java includes a Java adaptation of the binding-name classification in:
+  JetBrains/intellij-plugins, Angular/angular-backend/src/org/angular2/lang/html/parser/Angular2AttributeNameParser.kt
+  https://github.com/JetBrains/intellij-plugins/blob/master/Angular/angular-backend/src/org/angular2/lang/html/parser/Angular2AttributeNameParser.kt
+  Retrieved 2026-10-26.
+  Copyright 2000-2020 JetBrains s.r.o.
+  Licensed under Apache License 2.0; see licenses/Apache-2.0.txt in this archive.
+
+Changes: translated to Java, retained binding classification and source offsets,
+and removed Angular PSI, DOM schema, animation validation and localization dependencies.
+
+The remainder of this plugin is part of Jaspring, licensed under the repository's MIT license.

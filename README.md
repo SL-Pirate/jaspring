@@ -40,6 +40,7 @@ class HomeController {
 | `jaspring-spring-boot-starter` | auto-configuration, `JaspringView`, layout, transports, client shim |
 | `jaspring-sample` | demo app: counter, todos, async users with OnPush cards, pipes |
 | `tools/js-bundle` | builds the committed Angular compiler + PostCSS bundle (framework developers only) |
+| `tools/intellij-plugin` | standalone IntelliJ IDEA support for Java-backed templates |
 
 ## Use in a Spring Boot application
 
@@ -82,6 +83,8 @@ For local installation and Maven Central releases, see [Publishing](docs/publish
 Open http://localhost:8080/. Requires a GraalVM JDK 25 for the optimizing JavaScript runtime; other JDKs work with a warning and slower startup.
 
 ## Docs
+
+For IntelliJ completion, navigation and template refactoring, see [the IDE plugin](tools/intellij-plugin/README.md).
 
 `docs/architecture.md`, `docs/templates.md`, `docs/reactivity.md`, `docs/change-detection.md`, `docs/events.md`, `docs/protocol.md`, `docs/styles.md`, `docs/deviations.md`.
 

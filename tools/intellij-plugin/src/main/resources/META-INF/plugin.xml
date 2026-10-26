@@ -1,0 +1,33 @@
+<idea-plugin>
+    <id>dev.isira.jaspring</id>
+    <name>Jaspring</name>
+    <vendor>Isira Herath</vendor>
+    <description><![CDATA[
+        Java-aware completion and navigation for Jaspring's Angular-style HTML templates.
+        Supports package-relative resources, signals, bindings, control-flow locals, and inline templates.
+        Requires the Java plugin. No Angular, JavaScript, Node.js, or language server dependency.
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+    <depends>com.intellij.modules.xml</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <lang.substitutor language="HTML" implementationClass="dev.isira.jaspring.ide.JaspringLanguageSubstitutor" order="first"/>
+        <lang.parserDefinition language="JaspringHTML" implementationClass="dev.isira.jaspring.ide.JaspringHtmlParserDefinition"/>
+        <psi.referenceContributor language="" implementation="dev.isira.jaspring.ide.JaspringReferenceContributor"/>
+        <completion.contributor language="JaspringHTML" implementationClass="dev.isira.jaspring.ide.JaspringCompletionContributor" order="first"/>
+        <completion.contributor language="HTML" implementationClass="dev.isira.jaspring.ide.JaspringCompletionContributor" order="first"/>
+        <annotator language="JaspringHTML" implementationClass="dev.isira.jaspring.ide.JaspringAnnotator"/>
+        <annotator language="HTML" implementationClass="dev.isira.jaspring.ide.JaspringAnnotator"/>
+        <multiHostInjector implementation="dev.isira.jaspring.ide.JaspringInlineInjector"/>
+        <gotoRelatedProvider implementation="dev.isira.jaspring.ide.JaspringRelatedProvider"/>
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.isira.jaspring.ide.JaspringLineMarkerProvider"/>
+        <xml.elementDescriptorProvider implementation="dev.isira.jaspring.ide.JaspringElementDescriptorProvider"/>
+        <xml.attributeDescriptorsProvider implementation="dev.isira.jaspring.ide.JaspringAttributeDescriptorsProvider"/>
+        <localInspection language="JAVA" shortName="JaspringResource" displayName="Missing Jaspring resource"
+                         groupName="Jaspring" enabledByDefault="true" level="WARNING"
+                         implementationClass="dev.isira.jaspring.ide.JaspringResourceInspection"/>
+        <useScopeEnlarger implementation="dev.isira.jaspring.ide.JaspringUseScopeEnlarger"/>
+        <referencesSearch implementation="dev.isira.jaspring.ide.JaspringReferenceSearch"/>
+        <methodReferencesSearch implementation="dev.isira.jaspring.ide.JaspringPropertySearch"/>
+    </extensions>
+</idea-plugin>

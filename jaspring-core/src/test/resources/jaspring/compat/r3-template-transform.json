@@ -1,0 +1,2931 @@
+[
+ {
+  "name": "should parse incomplete tags terminated by EOF",
+  "html": "<a",
+  "ignoreError": true,
+  "expected": [
+   [
+    "Element",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should parse incomplete tags terminated by another tag",
+  "html": "<a <span></span>",
+  "ignoreError": true,
+  "expected": [
+   [
+    "Element",
+    "a"
+   ],
+   [
+    "Element",
+    "span"
+   ]
+  ]
+ },
+ {
+  "name": "should parse text nodes",
+  "html": "a",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should parse elements with attributes",
+  "html": "<div a=b></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "a",
+    "b"
+   ]
+  ]
+ },
+ {
+  "name": "should parse ngContent when it contains WS only",
+  "html": "<ng-content select=\"a\">    \n   </ng-content>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Content",
+    "a"
+   ],
+   [
+    "TextAttribute",
+    "select",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should parse ngContent regardless the namespace",
+  "html": "<svg><ng-content select=\"a\"></ng-content></svg>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    ":svg:svg"
+   ],
+   [
+    "Content",
+    "a"
+   ],
+   [
+    "TextAttribute",
+    "select",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound text nodes",
+  "html": "{{a}}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "BoundText",
+    "{{ a }}"
+   ]
+  ]
+ },
+ {
+  "name": "should parse mixed case bound properties",
+  "html": "<div [someProp]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "someProp",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound properties via bind- ",
+  "html": "<div bind-prop=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "prop",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound properties via {{...}}",
+  "html": "<div prop=\"{{v}}\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "prop",
+    "{{ v }}"
+   ]
+  ]
+ },
+ {
+  "name": "should parse dash case bound properties",
+  "html": "<div [some-prop]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "some-prop",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse dotted name bound properties",
+  "html": "<div [d.ot]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "d.ot",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse mixed case bound attributes",
+  "html": "<div [attr.someAttr]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    1,
+    "someAttr",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse and dash case bound classes",
+  "html": "<div [class.some-class]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    2,
+    "some-class",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse mixed case bound classes",
+  "html": "<div [class.someClass]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    2,
+    "someClass",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse mixed case bound styles",
+  "html": "<div [style.someStyle]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    3,
+    "someStyle",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse class bindings with various characters",
+  "html": "<foo [class.text-primary/80]=\"expr\" [class.data-active:text-green-300/80]=\"expr2\" [class.data-[size='large']:p-8] = \"expr3\" some-attr/>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "foo",
+    "#selfClosing"
+   ],
+   [
+    "TextAttribute",
+    "some-attr",
+    ""
+   ],
+   [
+    "BoundAttribute",
+    2,
+    "text-primary/80",
+    "expr"
+   ],
+   [
+    "BoundAttribute",
+    2,
+    "data-active:text-green-300/80",
+    "expr2"
+   ],
+   [
+    "BoundAttribute",
+    2,
+    "data-[size='large']:p-8",
+    "expr3"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.enter",
+  "html": "<div animate.enter=\"foo\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "animate.enter",
+    "foo"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.enter",
+  "html": "<div [animate.enter]=\"['foo', 'bar']\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    6,
+    "animate.enter",
+    "[\"foo\", \"bar\"]"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.enter",
+  "html": "<div (animate.enter)=\"animateFn($event)\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    3,
+    "animate.enter",
+    null,
+    "animateFn($event)"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.leave",
+  "html": "<div animate.leave=\"foo\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "animate.leave",
+    "foo"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.leave",
+  "html": "<div [animate.leave]=\"['foo', 'bar']\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    6,
+    "animate.leave",
+    "[\"foo\", \"bar\"]"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.leave",
+  "html": "<div (animate.leave)=\"animateFn($event)\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    3,
+    "animate.leave",
+    null,
+    "animateFn($event)"
+   ]
+  ]
+ },
+ {
+  "name": "should support animate.leave",
+  "html": "<div (animateXYZ)=\"animateFn()\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    0,
+    "animateXYZ",
+    null,
+    "animateFn()"
+   ]
+  ]
+ },
+ {
+  "name": "should support * directives",
+  "html": "<div *ngIf></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "TextAttribute",
+    "ngIf",
+    ""
+   ],
+   [
+    "Element",
+    "div"
+   ]
+  ]
+ },
+ {
+  "name": "should support <ng-template>",
+  "html": "<ng-template></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ]
+  ]
+ },
+ {
+  "name": "should support <ng-template> regardless the namespace",
+  "html": "<svg><ng-template></ng-template></svg>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    ":svg:svg"
+   ],
+   [
+    "Template"
+   ]
+  ]
+ },
+ {
+  "name": "should support <ng-template> with structural directive",
+  "html": "<ng-template *ngIf=\"true\"></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "ngIf",
+    "true"
+   ],
+   [
+    "Template"
+   ]
+  ]
+ },
+ {
+  "name": "should support reference via #...",
+  "html": "<ng-template #a></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "Reference",
+    "a",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "should support reference via ref-...",
+  "html": "<ng-template ref-a></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "Reference",
+    "a",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "should parse variables via let-...",
+  "html": "<ng-template let-a=\"b\"></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "Variable",
+    "a",
+    "b"
+   ]
+  ]
+ },
+ {
+  "name": "should parse attributes",
+  "html": "<ng-template k1=\"v1\" k2=\"v2\"></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "TextAttribute",
+    "k1",
+    "v1"
+   ],
+   [
+    "TextAttribute",
+    "k2",
+    "v2"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound attributes",
+  "html": "<ng-template [k1]=\"v1\" [k2]=\"v2\"></ng-template>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "k1",
+    "v1"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "k2",
+    "v2"
+   ]
+  ]
+ },
+ {
+  "name": "should support attribute and bound attributes",
+  "html": "<div *ngFor=\"let item of items\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "TextAttribute",
+    "ngFor",
+    ""
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "ngForOf",
+    "items"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Element",
+    "div"
+   ]
+  ]
+ },
+ {
+  "name": "should support attribute and bound attributes",
+  "html": "<div *ngFor=\"item of items\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "ngFor",
+    "item"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "ngForOf",
+    "items"
+   ],
+   [
+    "Element",
+    "div"
+   ]
+  ]
+ },
+ {
+  "name": "should parse variables via let ...",
+  "html": "<div *ngIf=\"let a=b\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "TextAttribute",
+    "ngIf",
+    ""
+   ],
+   [
+    "Variable",
+    "a",
+    "b"
+   ],
+   [
+    "Element",
+    "div"
+   ]
+  ]
+ },
+ {
+  "name": "should parse variables via as ...",
+  "html": "<div *ngIf=\"expr as local\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Template"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "ngIf",
+    "expr"
+   ],
+   [
+    "Variable",
+    "local",
+    "ngIf"
+   ],
+   [
+    "Element",
+    "div"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound events with a target",
+  "html": "<div (window:event)=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    0,
+    "event",
+    "window",
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse event names case sensitive",
+  "html": "<div (some-event)=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    0,
+    "some-event",
+    null,
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse event names case sensitive",
+  "html": "<div (someEvent)=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    0,
+    "someEvent",
+    null,
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound events via on-",
+  "html": "<div on-event=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundEvent",
+    0,
+    "event",
+    null,
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound events and properties via [(...)]",
+  "html": "<div [(prop)]=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "v"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse $any in a two-way binding",
+  "html": "<div [(prop)]=\"$any(v)\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "$any(v)"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "$any(v)"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound events and properties via bindon-",
+  "html": "<div bindon-prop=\"v\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "v"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "v"
+   ]
+  ]
+ },
+ {
+  "name": "should parse bound events and properties via [(...)] with non-null operator",
+  "html": "<div [(prop)]=\"v!\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "v!"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "v!"
+   ]
+  ]
+ },
+ {
+  "name": "should parse property reads bound via [(...)]",
+  "html": "<div [(prop)]=\"a.b.c\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "a.b.c"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "a.b.c"
+   ]
+  ]
+ },
+ {
+  "name": "should parse keyed reads bound via [(...)]",
+  "html": "<div [(prop)]=\"a['b']['c']\"></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "BoundAttribute",
+    5,
+    "prop",
+    "a[\"b\"][\"c\"]"
+   ],
+   [
+    "BoundEvent",
+    2,
+    "propChange",
+    null,
+    "a[\"b\"][\"c\"]"
+   ]
+  ]
+ },
+ {
+  "name": "should parse references via #...",
+  "html": "<div #a></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "Reference",
+    "a",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "should parse references via ref-",
+  "html": "<div ref-a></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "Reference",
+    "a",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "should parse camel case references",
+  "html": "<div #someA></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "Reference",
+    "someA",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <script> elements",
+  "html": "<script></script>a",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <style> elements",
+  "html": "<style></style>a",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should not ignore namespaced SVG <style> elements",
+  "html": "<svg><style>.a { fill: none; }</style></svg>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    ":svg:svg"
+   ],
+   [
+    "Element",
+    ":svg:style"
+   ],
+   [
+    "Text",
+    ".a { fill: none; }"
+   ]
+  ]
+ },
+ {
+  "name": "should keep <link rel=\"stylesheet\"> elements if they have an absolute url",
+  "html": "<link rel=\"stylesheet\" href=\"http://someurl\">",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "link"
+   ],
+   [
+    "TextAttribute",
+    "rel",
+    "stylesheet"
+   ],
+   [
+    "TextAttribute",
+    "href",
+    "http://someurl"
+   ]
+  ]
+ },
+ {
+  "name": "should keep <link rel=\"stylesheet\"> elements if they have an absolute url",
+  "html": "<link REL=\"stylesheet\" href=\"http://someurl\">",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "link"
+   ],
+   [
+    "TextAttribute",
+    "REL",
+    "stylesheet"
+   ],
+   [
+    "TextAttribute",
+    "href",
+    "http://someurl"
+   ]
+  ]
+ },
+ {
+  "name": "should keep <link rel=\"stylesheet\"> elements if they have no uri",
+  "html": "<link rel=\"stylesheet\">",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "link"
+   ],
+   [
+    "TextAttribute",
+    "rel",
+    "stylesheet"
+   ]
+  ]
+ },
+ {
+  "name": "should keep <link rel=\"stylesheet\"> elements if they have no uri",
+  "html": "<link REL=\"stylesheet\">",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "link"
+   ],
+   [
+    "TextAttribute",
+    "REL",
+    "stylesheet"
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <link rel=\"stylesheet\"> elements if they have a relative uri",
+  "html": "<link rel=\"stylesheet\" href=\"./other.css\">",
+  "ignoreError": false,
+  "expected": []
+ },
+ {
+  "name": "should ignore <link rel=\"stylesheet\"> elements if they have a relative uri",
+  "html": "<link REL=\"stylesheet\" HREF=\"./other.css\">",
+  "ignoreError": false,
+  "expected": []
+ },
+ {
+  "name": "should ignore bindings on children of elements with ngNonBindable",
+  "html": "<div ngNonBindable>{{b}}</div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Text",
+    "{{b}}"
+   ]
+  ]
+ },
+ {
+  "name": "should keep nested children of elements with ngNonBindable",
+  "html": "<div ngNonBindable><span>{{b}}</span></div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Element",
+    "span"
+   ],
+   [
+    "Text",
+    "{{b}}"
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <script> elements inside of elements with ngNonBindable",
+  "html": "<div ngNonBindable><script></script>a</div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <style> elements inside of elements with ngNonBindable",
+  "html": "<div ngNonBindable><style></style>a</div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should ignore <link rel=\"stylesheet\"> elements inside of elements with ngNonBindable",
+  "html": "<div ngNonBindable><link rel=\"stylesheet\">a</div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Text",
+    "a"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a simple deferred block",
+  "html": "@defer{hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a `when` trigger",
+  "html": "@defer (when isVisible() && loaded){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "BoundDeferredTrigger",
+    "isVisible() && loaded"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a single `on` trigger",
+  "html": "@defer (on idle){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "IdleDeferredTrigger"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with multiple `on` triggers",
+  "html": "@defer (on idle, viewport(button)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "IdleDeferredTrigger"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    "button"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a non-parenthesized trigger at the end",
+  "html": "@defer (on idle, viewport(button), immediate){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "IdleDeferredTrigger"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    "button"
+   ],
+   [
+    "ImmediateDeferredTrigger"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a timer set in seconds",
+  "html": "@defer (on timer(10s)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "TimerDeferredTrigger",
+    10000
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a timer with a decimal point",
+  "html": "@defer (on timer(1.5s)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "TimerDeferredTrigger",
+    1500
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a timer that has no units",
+  "html": "@defer (on timer(100)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "TimerDeferredTrigger",
+    100
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with a hover trigger",
+  "html": "@defer (on hover(button)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "HoverDeferredTrigger",
+    "button"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with an interaction trigger",
+  "html": "@defer (on interaction(button)){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "InteractionDeferredTrigger",
+    "button"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with connected blocks",
+  "html": "@defer {<calendar-cmp [date]=\"current\"/>}@loading {Loading...}@placeholder {Placeholder content!}@error {Loading failed :(}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "Element",
+    "calendar-cmp",
+    "#selfClosing"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "date",
+    "current"
+   ],
+   [
+    "DeferredBlockPlaceholder"
+   ],
+   [
+    "Text",
+    "Placeholder content!"
+   ],
+   [
+    "DeferredBlockLoading"
+   ],
+   [
+    "Text",
+    "Loading..."
+   ],
+   [
+    "DeferredBlockError"
+   ],
+   [
+    "Text",
+    "Loading failed :("
+   ]
+  ]
+ },
+ {
+  "name": "should parse a deferred block with comments between the connected blocks",
+  "html": "@defer {<calendar-cmp [date]=\"current\"/>}<!-- Show this while loading --> @loading {Loading...}<!-- Show this on the server --> @placeholder {Placeholder content!}<!-- Show this on error --> @error {Loading failed :(}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "Element",
+    "calendar-cmp",
+    "#selfClosing"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "date",
+    "current"
+   ],
+   [
+    "DeferredBlockPlaceholder"
+   ],
+   [
+    "Text",
+    "Placeholder content!"
+   ],
+   [
+    "DeferredBlockLoading"
+   ],
+   [
+    "Text",
+    "Loading..."
+   ],
+   [
+    "DeferredBlockError"
+   ],
+   [
+    "Text",
+    "Loading failed :("
+   ]
+  ]
+ },
+ {
+  "name": "should parse a loading block with parameters",
+  "html": "@defer{<calendar-cmp [date]=\"current\"/>}@loading (after 100ms; minimum 1.5s){Loading...}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "Element",
+    "calendar-cmp",
+    "#selfClosing"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "date",
+    "current"
+   ],
+   [
+    "DeferredBlockLoading",
+    "after 100ms",
+    "minimum 1500ms"
+   ],
+   [
+    "Text",
+    "Loading..."
+   ]
+  ]
+ },
+ {
+  "name": "should parse a placeholder block with parameters",
+  "html": "@defer {<calendar-cmp [date]=\"current\"/>}@placeholder (minimum 1.5s){Placeholder...}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "Element",
+    "calendar-cmp",
+    "#selfClosing"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "date",
+    "current"
+   ],
+   [
+    "DeferredBlockPlaceholder",
+    "minimum 1500ms"
+   ],
+   [
+    "Text",
+    "Placeholder..."
+   ]
+  ]
+ },
+ {
+  "name": "should parse a complete example",
+  "html": "@defer (when isVisible() && foo; on hover(button), timer(10s), idle, immediate, interaction(button), viewport(container); prefetch on immediate; prefetch when isDataLoaded(); hydrate when shouldHydrate(); hydrate on viewport){<calendar-cmp [date]=\"current\"/>}@loading (minimum 1s; after 100ms){Loading...}@placeholder (minimum 500){Placeholder content!}@error {Loading failed :(}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "BoundDeferredTrigger",
+    "shouldHydrate()"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    null
+   ],
+   [
+    "BoundDeferredTrigger",
+    "isVisible() && foo"
+   ],
+   [
+    "HoverDeferredTrigger",
+    "button"
+   ],
+   [
+    "TimerDeferredTrigger",
+    10000
+   ],
+   [
+    "IdleDeferredTrigger"
+   ],
+   [
+    "ImmediateDeferredTrigger"
+   ],
+   [
+    "InteractionDeferredTrigger",
+    "button"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    "container"
+   ],
+   [
+    "ImmediateDeferredTrigger"
+   ],
+   [
+    "BoundDeferredTrigger",
+    "isDataLoaded()"
+   ],
+   [
+    "Element",
+    "calendar-cmp",
+    "#selfClosing"
+   ],
+   [
+    "BoundAttribute",
+    0,
+    "date",
+    "current"
+   ],
+   [
+    "DeferredBlockPlaceholder",
+    "minimum 500ms"
+   ],
+   [
+    "Text",
+    "Placeholder content!"
+   ],
+   [
+    "DeferredBlockLoading",
+    "after 100ms",
+    "minimum 1000ms"
+   ],
+   [
+    "Text",
+    "Loading..."
+   ],
+   [
+    "DeferredBlockError"
+   ],
+   [
+    "Text",
+    "Loading failed :("
+   ]
+  ]
+ },
+ {
+  "name": "should parse triggers with implied target elements",
+  "html": "@defer (on hover, interaction, viewport; prefetch on hover, interaction, viewport) {hello}@placeholder {<implied-trigger/>}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "HoverDeferredTrigger",
+    null
+   ],
+   [
+    "InteractionDeferredTrigger",
+    null
+   ],
+   [
+    "ViewportDeferredTrigger",
+    null
+   ],
+   [
+    "HoverDeferredTrigger",
+    null
+   ],
+   [
+    "InteractionDeferredTrigger",
+    null
+   ],
+   [
+    "ViewportDeferredTrigger",
+    null
+   ],
+   [
+    "Text",
+    "hello"
+   ],
+   [
+    "DeferredBlockPlaceholder"
+   ],
+   [
+    "Element",
+    "implied-trigger",
+    "#selfClosing"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a viewport trigger with an options parameter",
+  "html": "@defer (on viewport({trigger: foo, rootMargin: \"123px\", threshold: [1, 2, 3]})){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    "foo",
+    "{rootMargin: \"123px\", threshold: [1, 2, 3]}"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a viewport trigger with an options parameter, but without a trigger",
+  "html": "@defer (on viewport({rootMargin: \"123px\"})){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    null,
+    "{rootMargin: \"123px\"}"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a viewport trigger with an options parameter, but without a trigger",
+  "html": "@defer (on viewport({rootMargin: \"123px\"})){hello}",
+  "ignoreError": false,
+  "expected": [
+   [
+    "DeferredBlock"
+   ],
+   [
+    "ViewportDeferredTrigger",
+    null,
+    "{rootMargin: \"123px\"}"
+   ],
+   [
+    "Text",
+    "hello"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a switch block",
+  "html": "\n          @switch (cond.kind) {\n            @case (x()) { X case }\n            @case ('hello') {<button>Y case</button>}\n            @case (42) { Z case }\n            @default { No case matched }\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "cond.kind"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "x()"
+   ],
+   [
+    "Text",
+    " X case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"hello\""
+   ],
+   [
+    "Element",
+    "button"
+   ],
+   [
+    "Text",
+    "Y case"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "42"
+   ],
+   [
+    "Text",
+    " Z case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "Text",
+    " No case matched "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a switch block with a default never case",
+  "html": "\n          @switch (cond.kind) {\n            @default never;\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "cond.kind"
+   ],
+   [
+    "SwitchExhaustiveCheck"
+   ]
+  ]
+ },
+ {
+  "name": "should parse a switch block with optional parentheses",
+  "html": "\n          @switch ((cond.kind)) {\n            @case ((x())) { X case }\n            @case (('hello')) {<button>Y case</button>}\n            @case ((42)) { Z case }\n            @default { No case matched }\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "(cond.kind)"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "(x())"
+   ],
+   [
+    "Text",
+    " X case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "(\"hello\")"
+   ],
+   [
+    "Element",
+    "button"
+   ],
+   [
+    "Text",
+    "Y case"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "(42)"
+   ],
+   [
+    "Text",
+    " Z case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "Text",
+    " No case matched "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a nested switch block",
+  "html": "\n          @switch (cond) {\n            @case ('a') {\n              @switch (innerCond) {\n                @case ('innerA') { Inner A }\n                @case ('innerB') { Inner B }\n              }\n            }\n            @case ('b') {<button>Y case</button>}\n            @case ('c') { Z case }\n            @default {\n              @switch (innerCond) {\n                @case ('innerC') { Inner C }\n                @case ('innerD') { Inner D }\n                @default {\n                  @switch (innerInnerCond) {\n                    @case ('innerInnerA') { Inner inner A }\n                    @case ('innerInnerA') { Inner inner B }\n                  }\n                }\n              }\n            }\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "cond"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"a\""
+   ],
+   [
+    "SwitchBlock",
+    "innerCond"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerA\""
+   ],
+   [
+    "Text",
+    " Inner A "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerB\""
+   ],
+   [
+    "Text",
+    " Inner B "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"b\""
+   ],
+   [
+    "Element",
+    "button"
+   ],
+   [
+    "Text",
+    "Y case"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"c\""
+   ],
+   [
+    "Text",
+    " Z case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "SwitchBlock",
+    "innerCond"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerC\""
+   ],
+   [
+    "Text",
+    " Inner C "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerD\""
+   ],
+   [
+    "Text",
+    " Inner D "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "SwitchBlock",
+    "innerInnerCond"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerInnerA\""
+   ],
+   [
+    "Text",
+    " Inner inner A "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"innerInnerA\""
+   ],
+   [
+    "Text",
+    " Inner inner B "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a switch block containing comments",
+  "html": "\n          @switch (cond.kind) {\n            <!-- X case -->\n            @case (x) { X case }\n\n            <!-- default case -->\n            @default { No case matched }\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "cond.kind"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "x"
+   ],
+   [
+    "Text",
+    " X case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "Text",
+    " No case matched "
+   ]
+  ]
+ },
+ {
+  "name": "should parse multiple case blocks in a switch block",
+  "html": "\n          @switch (cond) {\n            @case ('a') @case('b') @case('c') @case('d') { ABCD case }\n            @case ('z') { Z case }\n            @default { No case matched }\n          }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "SwitchBlock",
+    "cond"
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"a\""
+   ],
+   [
+    "SwitchBlockCase",
+    "\"b\""
+   ],
+   [
+    "SwitchBlockCase",
+    "\"c\""
+   ],
+   [
+    "SwitchBlockCase",
+    "\"d\""
+   ],
+   [
+    "Text",
+    " ABCD case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    "\"z\""
+   ],
+   [
+    "Text",
+    " Z case "
+   ],
+   [
+    "SwitchBlockCaseGroup"
+   ],
+   [
+    "SwitchBlockCase",
+    null
+   ],
+   [
+    "Text",
+    " No case matched "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block",
+  "html": "\n        @for (item of items.foo.bar; track item.id) {\n          {{ item }}\n        } @empty {\n          There were no items in the list.\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ],
+   [
+    "ForLoopBlockEmpty"
+   ],
+   [
+    "Text",
+    " There were no items in the list. "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with optional parentheses",
+  "html": "\n        @for ((item of items.foo.bar); track item.id){\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with optional parentheses",
+  "html": "\n        @for ((item of items.foo.bar()); track item.id) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar()",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with optional parentheses",
+  "html": "\n        @for ((   ( (item of items.foo.bar()) )   ); track item.id) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar()",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with let parameters",
+  "html": "\n        @for (item of items.foo.bar; track item.id; let idx = $index, f = $first, c = $count; let l = $last, ev = $even, od = $odd) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "Variable",
+    "idx",
+    "$index"
+   ],
+   [
+    "Variable",
+    "f",
+    "$first"
+   ],
+   [
+    "Variable",
+    "c",
+    "$count"
+   ],
+   [
+    "Variable",
+    "l",
+    "$last"
+   ],
+   [
+    "Variable",
+    "ev",
+    "$even"
+   ],
+   [
+    "Variable",
+    "od",
+    "$odd"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with newlines in its let parameters",
+  "html": "\n        @for (item of items.foo.bar; track item.id; let\nidx = $index,\nf = $first,\nc = $count,\nl = $last,\nev = $even,\nod = $odd) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "Variable",
+    "idx",
+    "$index"
+   ],
+   [
+    "Variable",
+    "f",
+    "$first"
+   ],
+   [
+    "Variable",
+    "c",
+    "$count"
+   ],
+   [
+    "Variable",
+    "l",
+    "$last"
+   ],
+   [
+    "Variable",
+    "ev",
+    "$even"
+   ],
+   [
+    "Variable",
+    "od",
+    "$odd"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse nested for loop blocks",
+  "html": "\n        @for (item of items.foo.bar; track item.id) {\n          {{ item }}\n\n          <div>\n            @for (subitem of item.items; track subitem.id) {<h1>{{subitem}}</h1>}\n          </div>\n        } @empty {\n          There were no items in the list.\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ],
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "ForLoopBlock",
+    "item.items",
+    "subitem.id"
+   ],
+   [
+    "Variable",
+    "subitem",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "Element",
+    "h1"
+   ],
+   [
+    "BoundText",
+    "{{ subitem }}"
+   ],
+   [
+    "ForLoopBlockEmpty"
+   ],
+   [
+    "Text",
+    " There were no items in the list. "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a for loop block with a function call in the `track` expression",
+  "html": "\n        @for (item of items.foo.bar; track trackBy(item.id, 123)) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "items.foo.bar",
+    "trackBy(item.id, 123)"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse for loop block expression containing new lines",
+  "html": "\n        @for (item of [\n          { id: 1 },\n          { id: 2 }\n        ]; track item.id) {\n          {{ item }}\n        }\n      ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "ForLoopBlock",
+    "[{id: 1}, {id: 2}]",
+    "item.id"
+   ],
+   [
+    "Variable",
+    "item",
+    "$implicit"
+   ],
+   [
+    "Variable",
+    "$index",
+    "$index"
+   ],
+   [
+    "Variable",
+    "$first",
+    "$first"
+   ],
+   [
+    "Variable",
+    "$last",
+    "$last"
+   ],
+   [
+    "Variable",
+    "$even",
+    "$even"
+   ],
+   [
+    "Variable",
+    "$odd",
+    "$odd"
+   ],
+   [
+    "Variable",
+    "$count",
+    "$count"
+   ],
+   [
+    "BoundText",
+    " {{ item }} "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an if block",
+  "html": "\n        @if (cond.expr; as foo) {\n          Main case was true!\n        } @else if (other.expr) {\n          Extra case was true!\n        } @else {\n          False case!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "cond.expr"
+   ],
+   [
+    "Variable",
+    "foo",
+    "foo"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "other.expr"
+   ],
+   [
+    "Text",
+    " Extra case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "Text",
+    " False case! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an if block with optional parentheses",
+  "html": "\n        @if ((cond.expr)) {\n          Main case was true!\n        } @else if ((other.expr)) {\n          Extra case was true!\n        } @else {\n          False case!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "(cond.expr)"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "(other.expr)"
+   ],
+   [
+    "Text",
+    " Extra case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "Text",
+    " False case! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse nested if blocks",
+  "html": "\n        @if (a) {\n          @if (a1) {\n            a1\n          } @else {\n            b1\n          }\n        }\n        @else if (b) {\n          b\n        } @else {\n          @if (c1) {\n            c1\n          } @else if (c2) {\n            c2\n          } @else {\n            c3\n          }\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "a"
+   ],
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "a1"
+   ],
+   [
+    "Text",
+    " a1 "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "Text",
+    " b1 "
+   ],
+   [
+    "IfBlockBranch",
+    "b"
+   ],
+   [
+    "Text",
+    " b "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "c1"
+   ],
+   [
+    "Text",
+    " c1 "
+   ],
+   [
+    "IfBlockBranch",
+    "c2"
+   ],
+   [
+    "Text",
+    " c2 "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "Text",
+    " c3 "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an else if block with multiple spaces",
+  "html": "\n        @if (cond.expr; as foo) {\n          Main case was true!\n        } @else        if (other.expr) {\n          Other case was true!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "cond.expr"
+   ],
+   [
+    "Variable",
+    "foo",
+    "foo"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "other.expr"
+   ],
+   [
+    "Text",
+    " Other case was true! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an else if block with a tab between `else` and `if`",
+  "html": "\n        @if (cond.expr; as foo) {\n          Main case was true!\n        } @else\tif (other.expr) {\n          Other case was true!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "cond.expr"
+   ],
+   [
+    "Variable",
+    "foo",
+    "foo"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "other.expr"
+   ],
+   [
+    "Text",
+    " Other case was true! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an if block containing comments between the branches",
+  "html": "\n        @if (cond.expr; as foo) {\n          Main case was true!\n        }\n        <!-- Extra case -->\n        @else if (other.expr) {\n          Extra case was true!\n        }\n        <!-- False case -->\n        @else {\n          False case!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "cond.expr"
+   ],
+   [
+    "Variable",
+    "foo",
+    "foo"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "other.expr"
+   ],
+   [
+    "Text",
+    " Extra case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    null
+   ],
+   [
+    "Text",
+    " False case! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse an else if block with an aliased expression",
+  "html": "\n        @if (cond.expr; as foo) {\n          Main case was true!\n        } @else if (other.expr; as bar) {\n          Other case was true!\n        }\n        ",
+  "ignoreError": false,
+  "expected": [
+   [
+    "IfBlock"
+   ],
+   [
+    "IfBlockBranch",
+    "cond.expr"
+   ],
+   [
+    "Variable",
+    "foo",
+    "foo"
+   ],
+   [
+    "Text",
+    " Main case was true! "
+   ],
+   [
+    "IfBlockBranch",
+    "other.expr"
+   ],
+   [
+    "Variable",
+    "bar",
+    "bar"
+   ],
+   [
+    "Text",
+    " Other case was true! "
+   ]
+  ]
+ },
+ {
+  "name": "should parse a let declaration",
+  "html": "@let foo = 123 + 456;",
+  "ignoreError": false,
+  "expected": [
+   [
+    "LetDeclaration",
+    "foo",
+    "123 + 456"
+   ]
+  ]
+ },
+ {
+  "name": "should produce a text node when @let is used inside ngNonBindable",
+  "html": "<div ngNonBindable>@let foo = 123;</div>",
+  "ignoreError": false,
+  "expected": [
+   [
+    "Element",
+    "div"
+   ],
+   [
+    "TextAttribute",
+    "ngNonBindable",
+    ""
+   ],
+   [
+    "Text",
+    "@let foo = 123;"
+   ]
+  ]
+ }
+]

@@ -77,6 +77,7 @@ public final class AngularCompilerRuntime implements AutoCloseable {
     }
 
     /// Runs Angular's `parseTemplate` and hands the raw result to `convert` while the context is locked.
+    /// The raw value carries `nodes`, `ngContentSelectors` and `errors` (never thrown by the JS side).
     public <T> T parse(String template, String url, ParseOptions options, Function<Value, T> convert) {
         return withExports(exports -> {
             final var jsOptions = context.eval("js", "({})");
@@ -85,6 +86,8 @@ public final class AngularCompilerRuntime implements AutoCloseable {
             jsOptions.putMember("enableLetSyntax", true);
             jsOptions.putMember("enableSelectorless", false);
             jsOptions.putMember("collectCommentNodes", false);
+            // Angular returns no nodes at all after a parse error unless asked to keep converting.
+            jsOptions.putMember("alwaysAttemptHtmlToR3AstConversion", options.tolerateErrors());
             return convert.apply(exports.getMember("parse").execute(template, url, jsOptions));
         });
     }

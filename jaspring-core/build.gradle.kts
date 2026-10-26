@@ -11,6 +11,7 @@ dependencies {
 	testImplementation(libs.junit.jupiter)
 	testImplementation(libs.mockito.core)
 	testImplementation(libs.spring.test)
+	testImplementation(libs.jackson.databind)
 	testRuntimeOnly(libs.junit.launcher)
 }
 

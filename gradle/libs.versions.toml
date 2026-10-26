@@ -5,6 +5,7 @@ graal = "25.2.4"
 angular = "21.2.25"
 postcss = "8.5.31"
 tailwind = "4.3.3"
+maven-publish = "0.37.0"
 
 [libraries]
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -29,3 +30,4 @@ jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }

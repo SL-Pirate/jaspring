@@ -41,6 +41,38 @@ class HomeController {
 | `jaspring-sample` | demo app: counter, todos, async users with OnPush cards, pipes |
 | `tools/js-bundle` | builds the committed Angular compiler + PostCSS bundle (framework developers only) |
 
+## Use in a Spring Boot application
+
+Requires Java 25 and Spring Boot 4.1.x. Once a release is available on Maven Central,
+add the starter (replace `VERSION` with the published release):
+
+```kotlin
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("dev.isira:jaspring-spring-boot-starter:VERSION")
+}
+```
+
+For Maven:
+
+```xml
+<dependency>
+    <groupId>dev.isira</groupId>
+    <artifactId>jaspring-spring-boot-starter</artifactId>
+    <version>VERSION</version>
+</dependency>
+```
+
+The starter includes core and the GraalJS runtime transitively. Add Spring Boot's
+`spring-boot-starter-websocket` if you want WebSocket transport; otherwise Jaspring
+uses HTTP. Run with `--enable-native-access=ALL-UNNAMED` for GraalJS native access.
+GraalVM JDK 25 enables the optimizing runtime; other Java 25 JDKs use the interpreter.
+
+For local installation and Maven Central releases, see [Publishing](docs/publishing.md).
+
 ## Run the sample
 
 ```

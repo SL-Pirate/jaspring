@@ -1,6 +1,9 @@
 plugins {
 	`java-library`
+	alias(libs.plugins.maven.publish)
 }
+
+description = "Java components, reactive signals and Angular template rendering for Spring applications."
 
 dependencies {
 	api(platform(libs.spring.boot.dependencies))

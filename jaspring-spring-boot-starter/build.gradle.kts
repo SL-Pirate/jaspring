@@ -1,6 +1,9 @@
 plugins {
 	`java-library`
+	alias(libs.plugins.maven.publish)
 }
+
+description = "Spring Boot auto-configuration, MVC views and live browser transports for Jaspring."
 
 dependencies {
 	api(platform(libs.spring.boot.dependencies))

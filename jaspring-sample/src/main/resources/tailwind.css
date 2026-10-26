@@ -4,3 +4,10 @@
   --color-brand: #0f766e;
   --color-brand-dark: #115e59;
 }
+
+/* Shared rules live here because component styles are scoped to their own template. */
+@layer components {
+  app-root section { @apply mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm; }
+  app-root h2 { @apply mb-3 text-lg font-semibold text-brand; }
+  app-root .hint { @apply text-sm text-gray-500; }
+}

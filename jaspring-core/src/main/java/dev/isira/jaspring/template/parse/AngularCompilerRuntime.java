@@ -72,7 +72,31 @@ public final class AngularCompilerRuntime implements AutoCloseable {
     public Versions versions() {
         return withExports(exports -> {
             final var value = exports.getMember("versions");
-            return new Versions(value.getMember("angular").asString(), value.getMember("postcss").asString());
+            return new Versions(value.getMember("angular").asString(), value.getMember("postcss").asString(),
+                    value.getMember("tailwind").asString());
+        });
+    }
+
+    /// Compiles a Tailwind stylesheet (`@import "tailwindcss"` plus the application's theme) for the given class
+    /// candidates. Tailwind's engine is asynchronous but does no I/O, so its promise settles before this returns.
+    public String compileTailwind(String stylesheet, java.util.Collection<String> candidates) {
+        return compileTailwind(stylesheet, candidates, stylesheet);
+    }
+
+    /// `appStylesheet` is what `@reference "jaspring:app"` resolves to, so component styles see the application's theme.
+    public String compileTailwind(String stylesheet, java.util.Collection<String> candidates, String appStylesheet) {
+        return withExports(exports -> {
+            // Host arrays are opaque to the JS side (HostAccess.NONE), so candidates travel as text.
+            final var holder = exports.getMember("compileTailwind").execute(stylesheet, String.join("\n", candidates), appStylesheet);
+            final var error = holder.getMember("error");
+            if (error != null && !error.isNull()) {
+                throw new IllegalStateException("Tailwind: " + error.asString());
+            }
+            final var css = holder.getMember("css");
+            if (css == null || css.isNull()) {
+                throw new IllegalStateException("Tailwind did not finish compiling synchronously");
+            }
+            return css.asString();
         });
     }
 
@@ -120,5 +144,5 @@ public final class AngularCompilerRuntime implements AutoCloseable {
         }
     }
 
-    public record Versions(String angular, String postcss) {}
+    public record Versions(String angular, String postcss, String tailwind) {}
 }

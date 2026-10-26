@@ -19,4 +19,5 @@ dependencies {
 tasks.test {
 	systemProperty("jaspring.versions.angular", libs.versions.angular.get())
 	systemProperty("jaspring.versions.postcss", libs.versions.postcss.get())
+	systemProperty("jaspring.versions.tailwind", libs.versions.tailwind.get())
 }

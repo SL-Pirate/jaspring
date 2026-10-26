@@ -2,6 +2,7 @@ package dev.isira.jaspring.style;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import dev.isira.jaspring.component.ComponentDef;
 import dev.isira.jaspring.component.ComponentRegistry;
@@ -12,16 +13,23 @@ import dev.isira.jaspring.template.parse.AngularCompilerRuntime;
 public final class StyleProcessor {
 
     private final AngularCompilerRuntime runtime;
+    private final UnaryOperator<String> preprocessor;
 
     public StyleProcessor(AngularCompilerRuntime runtime) {
+        this(runtime, UnaryOperator.identity());
+    }
+
+    /// `preprocessor` runs on each stylesheet before scoping, for example Tailwind resolving `@apply`.
+    public StyleProcessor(AngularCompilerRuntime runtime, UnaryOperator<String> preprocessor) {
         this.runtime = runtime;
+        this.preprocessor = preprocessor;
     }
 
     public String process(ComponentDef def) {
         final var out = new StringBuilder();
         for (final var css : def.styles()) {
             if (!out.isEmpty()) out.append('\n');
-            out.append(runtime.processCss(css, def.scopeId()));
+            out.append(runtime.processCss(preprocessor.apply(css), def.scopeId()));
         }
         return out.toString();
     }

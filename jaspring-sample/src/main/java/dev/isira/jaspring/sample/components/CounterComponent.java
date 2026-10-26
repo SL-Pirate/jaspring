@@ -6,8 +6,7 @@ import dev.isira.jaspring.signals.Signals;
 import dev.isira.jaspring.signals.WritableSignal;
 
 @Component(selector = "app-counter", templateUrl = "counter.component.html", styles = """
-        .count { font-size: 2rem; font-weight: 700; margin: 0 1rem; }
-        button { min-width: 2.5rem; }
+        .count { @apply mx-4 text-3xl font-bold tabular-nums; }
         """)
 public class CounterComponent {
 

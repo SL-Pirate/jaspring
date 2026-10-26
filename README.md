@@ -28,7 +28,7 @@ class HomeController {
 
 - Angular's real compiler (`@angular/compiler` 21.x) runs in GraalJS at startup, so every template Angular accepts has a defined meaning here and every template Angular rejects fails startup with Angular's message. Nothing on the request path touches JavaScript.
 - Signals (`signal`, `computed`, `effect`, `linkedSignal`, `input`, `model`, `output`) ported from Angular's reactive graph, plus zone and zoneless change detection with Default and OnPush strategies.
-- Control flow (`@if`, `@for`, `@switch`, `@defer`, `@let`), ICU, `*ngIf`/`*ngFor`/`ngSwitch`/`ngTemplateOutlet`, `ngClass`/`ngStyle`/`ngModel`, content projection, Angular's built-in pipes, custom attribute directives, emulated style encapsulation through PostCSS.
+- Control flow (`@if`, `@for`, `@switch`, `@defer`, `@let`), ICU, `*ngIf`/`*ngFor`/`ngSwitch`/`ngTemplateOutlet`, `ngClass`/`ngStyle`/`ngModel`, content projection, Angular's built-in pipes, custom attribute directives, emulated style encapsulation through PostCSS, and Tailwind v4 compiled on the JVM from the class names in your templates (`@apply` included).
 - Live events over a WebSocket per page with an HTTP fallback, or plain server rendering with `jaspring.live.transport=off`.
 - Spring DI everywhere: components are created through the bean factory, services inject as usual, and `@Scope("jaspring-page")` gives one instance per page.
 

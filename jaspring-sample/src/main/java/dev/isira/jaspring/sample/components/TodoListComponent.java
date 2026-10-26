@@ -7,8 +7,7 @@ import dev.isira.jaspring.sample.models.Todo;
 import dev.isira.jaspring.sample.services.TodoService;
 
 @Component(selector = "app-todo-list", templateUrl = "todo-list.component.html", styles = """
-        li.done span { text-decoration: line-through; color: #888; }
-        form { display: flex; gap: .5rem; }
+        li.done span { @apply text-gray-400 line-through; }
         """)
 public class TodoListComponent {
 

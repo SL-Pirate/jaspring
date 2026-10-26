@@ -8,8 +8,8 @@ import dev.isira.jaspring.signals.Signals;
 
 /// OnPush: re-renders only when its inputs change, an event fires inside it, or a signal it reads changes.
 @Component(selector = "app-user-card", templateUrl = "user-card.component.html", changeDetection = ChangeDetectionStrategy.ON_PUSH, styles = """
-        :host { display: block; border: 1px solid #ccc; border-radius: .5rem; padding: .75rem; margin: .5rem 0; }
-        .renders { color: #888; font-size: .8rem; }
+        :host { @apply my-2 flex items-center gap-3 rounded-lg border border-gray-200 p-3; }
+        .renders { @apply ml-auto text-xs text-gray-400; }
         """)
 public class UserCardComponent {
 

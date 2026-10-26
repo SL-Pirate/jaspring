@@ -1,6 +1,7 @@
 import { parseTemplate, DomElementSchemaRegistry } from '@angular/compiler';
 import postcss from 'postcss';
 import scopePlugin from './scope-plugin.mjs';
+export { compileTailwind } from './tailwind.mjs';
 
 export const versions = __JASPRING_VERSIONS__;
 

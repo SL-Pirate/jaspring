@@ -1,12 +1,12 @@
 <section>
   <h2>Async data + OnPush</h2>
-  <p>Chosen: <b>{{ chosen() }}</b> <span class="renders">(parent rendered {{ renderCount() }}x)</span></p>
+  <p>Chosen: <b>{{ chosen() }}</b> <span class="hint">(parent rendered {{ renderCount() }}x)</span></p>
   @if (users() === null) {
-    <p class="hint">Loading users from a slow directory...</p>
+    <p class="hint animate-pulse">Loading users from a slow directory...</p>
   } @else {
     @for (user of users(); track user) {
       <app-user-card [name]="user" [role]="user === chosen() ? 'chosen' : 'member'" (selected)="chosen.set($event)">
-        <p>Projected content for {{ user }}.</p>
+        <span class="text-sm text-gray-500">projected for {{ user }}</span>
       </app-user-card>
     }
   }

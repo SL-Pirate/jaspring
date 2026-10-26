@@ -27,6 +27,7 @@ class BundleTest {
 
         assertEquals(System.getProperty("jaspring.versions.angular"), versions.angular(), "rebuild tools/js-bundle");
         assertEquals(System.getProperty("jaspring.versions.postcss"), versions.postcss(), "rebuild tools/js-bundle");
+        assertEquals(System.getProperty("jaspring.versions.tailwind"), versions.tailwind(), "rebuild tools/js-bundle");
     }
 
     @Test

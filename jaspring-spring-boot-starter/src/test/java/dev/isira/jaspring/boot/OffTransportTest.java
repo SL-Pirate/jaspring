@@ -26,7 +26,7 @@ class OffTransportTest {
     void rendersPlainHtmlWithoutShimOrPages() throws Exception {
         final var html = mockMvc.perform(get("/")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
-        assertTrue(html.contains("<h1>Hello, Isira</h1>"), html);
+        assertTrue(html.contains(">Hello, Isira</h1>"), html);
         assertFalse(html.contains("data-jsp-on"), html);
         assertFalse(html.contains("jaspring.js"), html);
         assertEquals(0, pages.size());

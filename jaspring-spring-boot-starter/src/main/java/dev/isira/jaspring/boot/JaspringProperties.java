@@ -35,6 +35,30 @@ public class JaspringProperties {
     /// The HTML document the root component is placed into.
     private String layout = "classpath:/jaspring/index.html";
 
+    private final Tailwind tailwind = new Tailwind();
+
+    public static class Tailwind {
+        /// A Tailwind stylesheet (`@import "tailwindcss";` plus `@theme`). Setting it turns Tailwind on: utilities for
+        /// the class names in the templates are generated at startup and `@apply` works in component styles.
+        private String stylesheet;
+
+        public String getStylesheet() {
+            return stylesheet;
+        }
+
+        public void setStylesheet(String stylesheet) {
+            this.stylesheet = stylesheet;
+        }
+
+        public boolean isEnabled() {
+            return stylesheet != null && !stylesheet.isBlank();
+        }
+    }
+
+    public Tailwind getTailwind() {
+        return tailwind;
+    }
+
     public static class Live {
         /// `websocket` (with HTTP fallback), `http` (POST plus polling), or `off` (plain server rendering).
         private Transport transport = Transport.WEBSOCKET;

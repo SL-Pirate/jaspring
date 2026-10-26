@@ -31,7 +31,7 @@ class JaspringViewMockMvcTest {
         final var result = mockMvc.perform(get("/")).andExpect(status().isOk()).andReturn();
         final var html = result.getResponse().getContentAsString();
 
-        assertTrue(html.contains("<h1>Hello, Isira</h1>"), html);
+        assertTrue(html.contains(">Hello, Isira</h1>"), html);
         assertTrue(html.contains("<app-root data-jsp-v=\"1\">"), html);
         assertTrue(html.contains("<app-counter _nghost-jsp-c"), html);
         assertTrue(html.contains("data-jsp-on=\"click:2.1\""), html);

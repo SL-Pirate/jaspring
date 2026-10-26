@@ -87,8 +87,24 @@ public class JaspringAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ComponentStyles componentStyles(ComponentRegistry registry, AngularCompilerRuntime runtime) {
-        return new ComponentStyles(new StyleProcessor(runtime).processAll(registry));
+    public ComponentStyles componentStyles(ComponentRegistry registry, AngularCompilerRuntime runtime, JaspringProperties properties,
+            org.springframework.core.io.ResourceLoader resourceLoader) {
+        if (!properties.getTailwind().isEnabled()) {
+            return new ComponentStyles(new StyleProcessor(runtime).processAll(registry));
+        }
+        final var tailwind = new dev.isira.jaspring.style.TailwindProcessor(runtime,
+                read(resourceLoader.getResource(properties.getTailwind().getStylesheet())));
+        final var layout = read(resourceLoader.getResource(properties.getLayout()));
+        final var global = tailwind.global(dev.isira.jaspring.style.TailwindCandidates.of(registry, layout));
+        return new ComponentStyles(new StyleProcessor(runtime, tailwind::componentStyle).processAll(registry), global);
+    }
+
+    private static String read(org.springframework.core.io.Resource resource) {
+        try (var in = resource.getInputStream()) {
+            return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Cannot read " + resource, e);
+        }
     }
 
     @Bean

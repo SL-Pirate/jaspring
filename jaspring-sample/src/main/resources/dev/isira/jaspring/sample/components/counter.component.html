@@ -1,10 +1,12 @@
 <section>
   <h2>Signals</h2>
-  <button (click)="count.update(c => c - 1)">-</button>
-  <span class="count">{{ count() }}</span>
-  <button (click)="count.set(count() + 1)">+</button>
-  <button (click)="reset()" [disabled]="count() === 0">reset</button>
-  <p>Doubled through <code>computed()</code>: {{ doubled() }}</p>
+  <div class="flex items-center">
+    <button class="rounded bg-brand px-3 py-1 text-white hover:bg-brand-dark" (click)="count.update(c => c - 1)">-</button>
+    <span class="count">{{ count() }}</span>
+    <button class="rounded bg-brand px-3 py-1 text-white hover:bg-brand-dark" (click)="count.set(count() + 1)">+</button>
+    <button class="ml-4 rounded border border-gray-300 px-3 py-1 disabled:opacity-40" (click)="reset()" [disabled]="count() === 0">reset</button>
+  </div>
+  <p class="mt-2">Doubled through <code>computed()</code>: {{ doubled() }}</p>
   @if (count() > 5) {
     <p class="hint">That is more than five.</p>
   }

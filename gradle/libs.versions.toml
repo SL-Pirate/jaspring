@@ -4,6 +4,7 @@ graal = "25.2.4"
 # JS bundle pins; BundleTest asserts the committed bundle was built from these.
 angular = "21.2.25"
 postcss = "8.5.31"
+tailwind = "4.3.3"
 
 [libraries]
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }

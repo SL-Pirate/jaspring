@@ -1,17 +1,17 @@
 <section>
   <h2>Todos ({{ remaining() }} left)</h2>
-  <form (submit)="add()">
-    <input [(ngModel)]="draft" placeholder="What needs doing?" autocomplete="off">
-    <button type="submit" [disabled]="!draft.trim()">Add</button>
+  <form class="flex gap-2" (submit)="add()">
+    <input class="flex-1 rounded border border-gray-300 px-2 py-1 focus:border-brand focus:outline-none" [(ngModel)]="draft" placeholder="What needs doing?" autocomplete="off">
+    <button class="rounded bg-brand px-3 py-1 text-white disabled:opacity-40" type="submit" [disabled]="!draft.trim()">Add</button>
   </form>
-  <ul>
+  <ul class="mt-3 space-y-1">
     @for (todo of todos(); track todo.id(); let i = $index) {
-      <li [class.done]="todo.done()">
-        <label>
+      <li class="flex items-center gap-2" [class.done]="todo.done()">
+        <label class="flex flex-1 items-center gap-2">
           <input type="checkbox" [checked]="todo.done()" (change)="toggle(todo)">
           <span>{{ i + 1 }}. {{ todo.title() | titlecase }}</span>
         </label>
-        <button (click)="remove(todo)" title="remove">x</button>
+        <button class="text-gray-400 hover:text-red-600" (click)="remove(todo)" title="remove">x</button>
       </li>
     } @empty {
       <li class="hint">Nothing to do.</li>

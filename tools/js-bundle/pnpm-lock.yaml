@@ -14,6 +14,9 @@ importers:
       postcss:
         specifier: 8.5.31
         version: 8.5.31
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
     devDependencies:
       esbuild:
         specifier: 0.28.2
@@ -202,6 +205,9 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
+  tailwindcss@4.3.3:
+    resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -329,5 +335,7 @@ snapshots:
       source-map-js: 1.2.2
 
   source-map-js@1.2.2: {}
+
+  tailwindcss@4.3.3: {}
 
   tslib@2.8.1: {}

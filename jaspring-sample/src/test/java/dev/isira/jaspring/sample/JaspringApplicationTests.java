@@ -1,5 +1,6 @@
 package dev.isira.jaspring.sample;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,5 +27,9 @@ class JaspringApplicationTests {
         assertTrue(html.contains("Loading users"), html);
         assertTrue(html.contains("currency: €1,234.57"), html);
         assertTrue(html.contains("data-jsp-page="), html);
+        assertTrue(html.contains("<style data-jsp-tailwind>"), html);
+        assertTrue(html.contains(".bg-brand"), "utilities used by the templates are generated: " + html.substring(0, 400));
+        assertTrue(html.contains("--color-brand: #0f766e"), html);
+        assertFalse(html.contains("@apply"), "component styles had @apply resolved");
     }
 }

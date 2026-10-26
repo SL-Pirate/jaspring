@@ -1,6 +1,5 @@
 package dev.isira.jaspring.template.eval;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,12 +26,7 @@ final class JsShim {
     }
 
     static List<Object> arrayAsList(Object array) {
-        final var length = Array.getLength(array);
-        final var list = new ArrayList<Object>(length);
-        for (var i = 0; i < length; i++) {
-            list.add(Array.get(array, i));
-        }
-        return list;
+        return Js.arrayAsList(array);
     }
 
     private static Object string(String s, String name) {

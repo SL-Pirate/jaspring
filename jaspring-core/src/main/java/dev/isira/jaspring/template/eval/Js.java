@@ -16,6 +16,16 @@ public final class Js {
 
     private Js() {}
 
+    /// Copies any Java array (primitive or not) into a list, which is how templates see arrays.
+    public static java.util.List<Object> arrayAsList(Object array) {
+        final var length = java.lang.reflect.Array.getLength(array);
+        final var list = new java.util.ArrayList<Object>(length);
+        for (var i = 0; i < length; i++) {
+            list.add(java.lang.reflect.Array.get(array, i));
+        }
+        return list;
+    }
+
     public static boolean isNullish(Object value) {
         return value == null || value == JsUndefined.INSTANCE;
     }

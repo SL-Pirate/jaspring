@@ -28,3 +28,13 @@ Templates are Angular templates. They are parsed by Angular's own compiler (`@an
 - `<ng-container>` renders its children only. Angular's namespace prefixes (`:svg:circle`) are stripped.
 - `#ref` on a plain element resolves to an `ElementRef` with the tag name and rendered attributes; `@let` values are visible to later siblings in the same view.
 - Event bindings render as `data-jsp-on="event:ref[:flags]"` markers when the host registers handlers. The flags are decided statically: `pd` when the handler ends in `false` or calls `$event.preventDefault()`, `sp` for `$event.stopPropagation()`. Without a live host no marker is rendered.
+
+## Control flow
+
+- `@if` / `@else if` / `@else` render the first truthy branch; `@if (x; as y)` binds the alias inside the branch.
+- `@for` iterates lists, arrays, iterables and map entries, exposes `$index`, `$first`, `$last`, `$even`, `$odd`, `$count` and their aliases, and renders `@empty` for empty input. The `track` expression keys the iteration, which is what keeps child component instances stable across renders.
+- `@switch` compares with `===` and groups consecutive empty `@case`s; `@default` renders when nothing matches.
+- `@defer` renders its `@placeholder` on the server (nothing without one), unless it declares `hydrate` triggers, in which case the main content renders, matching Angular SSR.
+- ICU expansions (`{count, plural, =0 {none} other {{{ count }} items}}`, `select`) render the matching case. Plural categories are English only (`one` for exactly 1) until CLDR data is added.
+- `<ng-template>` renders nothing by itself; `#ref` on it yields a `TemplateRef`. `*ngIf` (with `then`/`else`/`as`), `*ngFor` (with `index`/`first`/`last`/`even`/`odd`/`count` and `trackBy`), `[ngSwitch]` with `*ngSwitchCase`/`*ngSwitchDefault`, and `*ngTemplateOutlet` with `context` behave like Angular's built-in directives. An outlet renders in the scope the template was declared in.
+- Template references are hoisted per embedded view, so an `else` template may follow the element that uses it. Each embedded view (block body, loop iteration, outlet) carries a key derived from the template position and the `track` value.

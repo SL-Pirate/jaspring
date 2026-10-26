@@ -14,6 +14,9 @@
   var listening = {};
   var lastSeq = 0;
   var transport = null;
+  // Values sent per ngModel ref. A patch echoing one of them must not touch the input the user is typing in;
+  // a value the client never sent means the server changed the model and the input follows it.
+  var sentModelValues = {};
 
   // ---------- event serialization ----------
 
@@ -181,7 +184,60 @@
     if (textLike ? event.type !== 'input' : event.type !== 'change') return;
     var value = element.type === 'radio' ? element.value : readValue(element);
     element.getAttribute('data-jsp-model').split(/\s+/).filter(Boolean).forEach(function (ref) {
+      var history = sentModelValues[ref] || (sentModelValues[ref] = []);
+      history.push(String(value));
+      if (history.length > 50) history.shift();
       send({ t: 'event', page: pageId, h: ref, ev: value });
+    });
+  }
+
+  function isTextLike(element) {
+    return element.tagName === 'TEXTAREA' || (element.tagName === 'INPUT' && element.type !== 'checkbox' && element.type !== 'radio' && element.type !== 'file');
+  }
+
+  // The server's rendered state of every bound input in a patch, read from the HTML before morphing: the morph
+  // leaves the focused element alone (value attribute included), so the DOM cannot tell us what the server sent.
+  function modelStateFrom(html, state) {
+    var template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('[data-jsp-model]').forEach(function (element) {
+      var entry = { checked: element.hasAttribute('checked') };
+      if (element.tagName === 'TEXTAREA') entry.value = element.textContent;
+      else if (element.tagName === 'SELECT') entry.selected = Array.prototype.map.call(element.querySelectorAll('option[selected]'), optionValue);
+      else entry.value = element.hasAttribute('value') ? element.getAttribute('value') : '';
+      element.getAttribute('data-jsp-model').split(/\s+/).filter(Boolean).forEach(function (ref) { state[ref] = entry; });
+    });
+    return state;
+  }
+
+  function optionValue(option) {
+    return option.hasAttribute('value') ? option.getAttribute('value') : option.textContent.trim();
+  }
+
+  // After the morph, bring bound inputs in line with the server. A value the user typed and the server echoed back
+  // is left alone (the user may have typed more since); anything else is a model change and the input follows it.
+  function syncModels(state) {
+    document.querySelectorAll('[data-jsp-model]').forEach(function (element) {
+      var refs = element.getAttribute('data-jsp-model').split(/\s+/).filter(Boolean);
+      var entry = state[refs[0]];
+      if (!entry) return;
+      if (element.tagName === 'SELECT') {
+        Array.prototype.forEach.call(element.options, function (option) { option.selected = entry.selected.indexOf(optionValue(option)) >= 0; });
+        return;
+      }
+      if (element.type === 'checkbox' || element.type === 'radio') {
+        element.checked = entry.checked;
+        return;
+      }
+      if (!isTextLike(element)) return;
+      var history = sentModelValues[refs[0]] || [];
+      var echoed = history.indexOf(entry.value);
+      if (echoed >= 0) {
+        history.splice(0, echoed + 1);
+        return;
+      }
+      if (element.value !== entry.value) element.value = entry.value;
+      sentModelValues[refs[0]] = [];
     });
   }
 
@@ -192,15 +248,18 @@
       case 'patch':
         if (message.seq && message.seq <= lastSeq) return;
         if (message.seq) lastSeq = message.seq;
+        var modelState = {};
         message.patches.forEach(function (patch) {
           var host = document.querySelector('[data-jsp-v="' + patch.v + '"]');
           if (!host) return;
+          modelStateFrom(patch.html, modelState);
           if (window.Idiomorph) {
             window.Idiomorph.morph(host, patch.html, { morphStyle: 'outerHTML', ignoreActiveValue: true });
           } else {
             host.outerHTML = patch.html;
           }
         });
+        syncModels(modelState);
         scan();
         break;
       case 'redirect':

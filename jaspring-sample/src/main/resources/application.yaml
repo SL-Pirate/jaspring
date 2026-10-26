@@ -7,3 +7,5 @@ spring:
 
 jaspring:
   dev-mode: true
+  # The user directory takes two seconds; answer at once and push the list when it arrives.
+  stability-timeout: 300ms

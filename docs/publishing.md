@@ -81,7 +81,26 @@ keys. Do not place credentials in project files or command-line arguments.
 
 ## Stage a release
 
-Choose an unused version and a reviewed commit. For example:
+Choose an unused version, update the installation examples, and commit the resulting
+README changes with the release preparation:
+
+```sh
+./gradlew updateReadmeVersions -PreleaseVersion=0.3.0
+```
+
+This updates Jaspring dependency coordinates, the Maven dependency version and the
+Gradle plugin version in the main and Gradle-plugin READMEs. Other dependencies and
+historical example commands are left alone. Python 3 is required, as for the
+publication verifier. The task rejects snapshots and is safe to run repeatedly.
+
+Release invocations of `publishToMavenCentral` (and `publishAndReleaseToMavenCentral`)
+also run this task automatically. Local snapshot publications and normal builds do
+not change the documentation. Commit any resulting README changes; a local task
+does not create Git commits. The CI release workflow runs `checkReadmeVersions`
+before building or uploading so an uncommitted update cannot disappear with the
+temporary runner checkout.
+
+Then publish from the reviewed commit. For example:
 
 ```sh
 export VERSION=<version>
@@ -110,8 +129,9 @@ Central's separate snapshot repository, which must be enabled for the namespace.
 The Build workflow tests and verifies local snapshot publications on pushes and
 pull requests, without publishing secrets. The **Stage Maven Central release**
 workflow is manually dispatched with a release version from the selected branch
-or tag. It tests the release, verifies signed local artifacts, then uploads them
-for review in Central Portal. It does not automatically release the deployment.
+or tag. It checks committed README versions, tests the release, verifies signed
+local artifacts, then uploads them for review in Central Portal. It does not
+automatically release the deployment.
 
 Configure these repository Actions secrets before running it:
 

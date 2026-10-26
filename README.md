@@ -45,8 +45,8 @@ class HomeController {
 
 ## Use in a Spring Boot application
 
-Requires Java 25 and Spring Boot 4.1.x. Once a release is available on Maven Central,
-add the starter (replace `VERSION` with the published release):
+Requires Java 25 and Spring Boot 4.1.x. Add the starter from Maven Central to your
+Spring Boot application's `build.gradle.kts`:
 
 ```kotlin
 repositories {
@@ -54,7 +54,7 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.isira:jaspring-spring-boot-starter:VERSION")
+    implementation("dev.isira:jaspring-spring-boot-starter:0.2.0")
 }
 ```
 
@@ -64,7 +64,7 @@ For Maven:
 <dependency>
     <groupId>dev.isira</groupId>
     <artifactId>jaspring-spring-boot-starter</artifactId>
-    <version>VERSION</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -77,7 +77,27 @@ For local installation and Maven Central releases, see [Publishing](docs/publish
 
 ## Generate a component
 
-Apply the `dev.isira.jaspring` Gradle plugin, then run:
+The generator is a separate Gradle plugin, applied in the application's `plugins`
+block. Add Maven Central to **plugin** repositories in `settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+```
+
+Then add this to the existing `plugins` block in `build.gradle.kts`:
+
+```kotlin
+plugins {
+    id("dev.isira.jaspring") version "0.2.0"
+}
+```
+
+Once the plugin is applied, run:
 
 ```sh
 ./gradlew generateComponent --name=user-card --package=com.example.components
@@ -95,6 +115,13 @@ CLI options include `--flat`, `--prefix`, `--inline-template`, `--inline-style` 
 ```
 
 Open http://localhost:8080/. Requires a GraalVM JDK 25 for the optimizing JavaScript runtime; other JDKs work with a warning and slower startup.
+
+The sample applies the Gradle plugin directly from this checkout. Generate a component
+using its configured default package (`dev.isira.jaspring.sample.components`):
+
+```sh
+./gradlew :jaspring-sample:generateComponent --name=profile-card
+```
 
 ## Docs
 

@@ -18,6 +18,19 @@ allprojects {
 	version = releaseVersion.getOrElse("0.0.1-SNAPSHOT")
 }
 
+val readmeVersionScript = layout.projectDirectory.file("tools/update-readme-versions.py").asFile
+val updateReadmeVersions = tasks.register<Exec>("updateReadmeVersions") {
+	group = "documentation"
+	description = "Updates Jaspring installation versions in the READMEs using -PreleaseVersion."
+	commandLine("python3", readmeVersionScript, "--version", releaseVersion.getOrElse(""))
+}
+
+tasks.register<Exec>("checkReadmeVersions") {
+	group = "verification"
+	description = "Checks that README installation versions match -PreleaseVersion without editing files."
+	commandLine("python3", readmeVersionScript, "--version", releaseVersion.getOrElse(""), "--check")
+}
+
 subprojects {
 	plugins.withType<JavaPlugin> {
 		extensions.configure<JavaPluginExtension> {
@@ -36,6 +49,13 @@ subprojects {
 	}
 
 	plugins.withId("com.vanniktech.maven.publish") {
+		if (releaseVersion.isPresent) {
+			tasks.matching {
+				it.name == "publishToMavenCentral" || it.name == "publishAndReleaseToMavenCentral"
+					|| it.name == "prepareMavenCentralPublishing"
+			}
+				.configureEach { dependsOn(updateReadmeVersions) }
+		}
 		val publishedProject = project
 		extensions.configure<MavenPublishBaseExtension> {
 			publishToMavenCentral(automaticRelease = false)

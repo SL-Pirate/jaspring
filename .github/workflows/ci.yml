@@ -24,3 +24,5 @@ jobs:
         run: ./gradlew build publishAllPublicationsToBuildRepository --console=plain
       - name: Verify Maven publications
         run: python3 tools/verify-publications.py
+      - name: Test documentation version updates
+        run: python3 -m unittest discover -s tools -p 'test_update_readme_versions.py'

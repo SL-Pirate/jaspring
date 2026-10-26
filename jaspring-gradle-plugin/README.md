@@ -7,8 +7,8 @@ the repository's Gradle 9.8.2 wrapper.
 
 ## Setup
 
-The plugin is configured for publication to Maven Central alongside Jaspring's
-libraries. Once a release is available, add Central to **plugin** repositories in
+The plugin is published to Maven Central alongside Jaspring's
+libraries. Add Central to **plugin** repositories in
 `settings.gradle.kts` (ordinary dependency repositories do not resolve plugins):
 
 ```kotlin
@@ -20,20 +20,20 @@ pluginManagement {
 }
 ```
 
-Apply it in the application's `build.gradle.kts`, replacing `VERSION` with the
-published Jaspring version:
+Apply the matching release in the application's `build.gradle.kts`:
 
 ```kotlin
 plugins {
     java
-    id("dev.isira.jaspring") version "VERSION"
+    id("dev.isira.jaspring") version "0.2.0"
 }
 ```
 
 Keep the usual `jaspring-spring-boot-starter` dependency. The Gradle plugin supplies
 build tooling; the starter supplies the runtime.
 
-For local use before publication, run `./gradlew :jaspring-gradle-plugin:publishToMavenLocal`
+To try unpublished changes from a local checkout, run
+`./gradlew :jaspring-gradle-plugin:publishToMavenLocal`
 in the Jaspring checkout, add `mavenLocal()` to the consumer's `pluginManagement.repositories`,
 and use version `0.0.1-SNAPSHOT`. See [publishing](../docs/publishing.md).
 
@@ -113,6 +113,18 @@ The CLI overrides configured naming defaults. Output roots default to
 task and the application's source sets when using another layout.
 
 ## Development
+
+The sample applies the plugin by ID and sets its default package to
+`dev.isira.jaspring.sample.components`:
+
+```sh
+./gradlew :jaspring-sample:generateComponent --name=profile-card
+```
+
+`buildSrc` compiles the same plugin sources before the main build is configured,
+so the sample works from a checkout without publishing or downloading Jaspring's
+plugin. The `jaspring-gradle-plugin` module remains responsible for its tests and
+publication.
 
 ```sh
 ./gradlew :jaspring-gradle-plugin:check :jaspring-gradle-plugin:publishAllPublicationsToBuildRepository

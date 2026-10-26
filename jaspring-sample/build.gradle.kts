@@ -1,6 +1,11 @@
 plugins {
 	java
 	alias(libs.plugins.spring.boot)
+	id("dev.isira.jaspring")
+}
+
+tasks.named<dev.isira.jaspring.gradle.GenerateComponent>("generateComponent") {
+	packageName.set("dev.isira.jaspring.sample.components")
 }
 
 val lombokVersion = "1.18.48"

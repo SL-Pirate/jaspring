@@ -30,6 +30,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+      - name: Check committed installation versions
+        run: ./gradlew checkReadmeVersions -PreleaseVersion="$RELEASE_VERSION" --console=plain
       - name: Build and test the release
         run: ./gradlew build -PreleaseVersion="$RELEASE_VERSION" --console=plain
       - name: Sign and verify the local release artifacts

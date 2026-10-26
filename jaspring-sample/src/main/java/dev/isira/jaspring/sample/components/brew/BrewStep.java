@@ -1,4 +1,4 @@
 package dev.isira.jaspring.sample.components.brew;
 
-public class BrewStep {
+public record BrewStep(String name, String water, String time, String note) {
 }

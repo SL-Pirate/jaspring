@@ -1,10 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<article class="card">
+    <header class="card__head">
+        <div>
+            <h2 class="card__title">Ethiopia Guji</h2>
+            <p class="card__meta">V60 pour-over, 18 g coffee to 300 g water</p>
+        </div>
+        <span class="card__badge">Light roast</span>
+    </header>
+
+    <section class="dial" aria-live="polite">
+        <svg class="dial__ring" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="dial__track" cx="100" cy="100" r="88" />
+            <circle
+                    class="dial__progress"
+                    cx="100" cy="100" r="88"
+                    [style.strokeDasharray]="circumference"
+                    [style.strokeDashoffset]="progressOffset" />
+        </svg>
+
+        <div class="dial__center">
+            <span class="dial__water">{{ steps[active].water }}<small>g</small></span>
+            <span class="dial__step">{{ steps[active].name }}</span>
+        </div>
+    </section>
+
+    <p class="card__note">{{ steps[active].note }}</p>
+
+    <ol class="steps">
+        @for (step of steps; track step.name; let i = $index) {
+        <li>
+            <button
+                    type="button"
+                    class="step"
+                    [class.step--active]="i === active"
+                    [class.step--done]="i < active"
+                    (click)="select(i)">
+                <span class="step__num">{{ i + 1 }}</span>
+                <span class="step__name">{{ step.name }}</span>
+                <span class="step__time">{{ step.time }}</span>
+            </button>
+        </li>
+        }
+    </ol>
+
+    <button type="button" class="cta" (click)="next()">
+        {{ active === steps.length - 1 ? 'Start over' : 'Next step' }}
+    </button>
+</article>

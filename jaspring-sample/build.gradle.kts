@@ -3,7 +3,11 @@ plugins {
 	alias(libs.plugins.spring.boot)
 }
 
+val lombokVersion = "1.18.48"
+
 dependencies {
+	compileOnly("org.projectlombok:lombok:$lombokVersion")
+	annotationProcessor("org.projectlombok:lombok:$lombokVersion")
 	implementation(platform(libs.spring.boot.dependencies))
 	developmentOnly(platform(libs.spring.boot.dependencies))
 	implementation(project(":jaspring-spring-boot-starter"))

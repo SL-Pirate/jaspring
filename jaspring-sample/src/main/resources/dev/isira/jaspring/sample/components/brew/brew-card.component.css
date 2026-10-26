@@ -1,0 +1,233 @@
+@import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&display=swap');
+
+:host {
+    --plum: #2d1e3e;
+    --plum-soft: #4a3760;
+    --lilac: #e9e6f2;
+    --butter: #f3d46b;
+    --mist: #b9b0cc;
+    --white: #fdfcff;
+
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+    font-family: 'Figtree', system-ui, sans-serif;
+}
+
+.card {
+    width: 100%;
+    max-width: 380px;
+    padding: 1.75rem;
+    border-radius: 28px;
+    background: var(--plum);
+    color: var(--white);
+    box-shadow: 0 30px 60px -20px rgba(45, 30, 62, 0.55);
+}
+
+/* Header */
+.card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.card__title {
+    margin: 0;
+    font-family: 'Young Serif', Georgia, serif;
+    font-weight: 400;
+    font-size: 1.6rem;
+    line-height: 1.15;
+}
+
+.card__meta {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--mist);
+}
+
+.card__badge {
+    flex-shrink: 0;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--butter);
+    color: var(--plum);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Dial — the one bold moment */
+.dial {
+    position: relative;
+    width: 220px;
+    aspect-ratio: 1;
+    margin: 1.75rem auto 1rem;
+}
+
+.dial__ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.dial__track,
+.dial__progress {
+    fill: none;
+    stroke-width: 10;
+}
+
+.dial__track {
+    stroke: var(--plum-soft);
+}
+
+.dial__progress {
+    stroke: var(--butter);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.dial__center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.dial__water {
+    font-family: 'Young Serif', Georgia, serif;
+    font-size: 3.4rem;
+    line-height: 1;
+}
+
+.dial__water small {
+    font-size: 1.2rem;
+    margin-left: 0.15rem;
+    color: var(--mist);
+}
+
+.dial__step {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--butter);
+}
+
+.card__note {
+    min-height: 2.8em;
+    margin: 0 auto 1.25rem;
+    max-width: 28ch;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--lilac);
+}
+
+/* Steps */
+.steps {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.step {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1.75rem 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--mist);
+    font: inherit;
+    font-size: 0.92rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.step:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.step:focus-visible,
+.cta:focus-visible {
+    outline: 2px solid var(--butter);
+    outline-offset: 2px;
+}
+
+.step__num {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--plum-soft);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.step__time {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.82rem;
+}
+
+.step--done .step__num {
+    background: var(--plum-soft);
+    border-color: var(--plum-soft);
+    color: var(--white);
+}
+
+.step--active {
+    background: var(--white);
+    color: var(--plum);
+}
+
+.step--active:hover {
+    background: var(--white);
+}
+
+.step--active .step__num {
+    background: var(--butter);
+    border-color: var(--butter);
+    color: var(--plum);
+}
+
+.step--active .step__name {
+    font-weight: 600;
+}
+
+/* Button */
+.cta {
+    width: 100%;
+    padding: 0.95rem;
+    border: 0;
+    border-radius: 16px;
+    background: var(--butter);
+    color: var(--plum);
+    font: inherit;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
+}
+
+.cta:hover {
+    filter: brightness(1.05);
+}
+
+.cta:active {
+    transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dial__progress,
+    .step,
+    .cta {
+        transition: none;
+    }
+}

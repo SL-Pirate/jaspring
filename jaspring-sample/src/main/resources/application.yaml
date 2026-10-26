@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: jaspring-sample
+  threads:
+    virtual:
+      enabled: true

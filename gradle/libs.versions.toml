@@ -1,0 +1,27 @@
+[versions]
+spring-boot = "4.1.2"
+graal = "25.2.4"
+# JS bundle pins; BundleTest asserts the committed bundle was built from these.
+angular = "21.2.25"
+postcss = "8.5.31"
+
+[libraries]
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-context = { module = "org.springframework:spring-context" }
+spring-test = { module = "org.springframework:spring-test" }
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
+spring-boot-starter-websocket = { module = "org.springframework.boot:spring-boot-starter-websocket" }
+spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
+spring-boot-starter-websocket-test = { module = "org.springframework.boot:spring-boot-starter-websocket-test" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
+graal-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graal" }
+graal-js = { module = "org.graalvm.polyglot:js-community", version.ref = "graal" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+mockito-core = { module = "org.mockito:mockito-core" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

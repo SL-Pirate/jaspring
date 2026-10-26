@@ -1,0 +1,4 @@
+/gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
+jaspring-core/src/main/resources/jaspring/js/*.mjs linguist-generated=true -diff

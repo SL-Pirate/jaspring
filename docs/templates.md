@@ -8,6 +8,8 @@ Templates are Angular templates. They are parsed by Angular's own compiler (`@an
 2. `ExpressionEvaluator` interprets expressions against the component instance with JavaScript semantics (see below).
 3. `TemplateRenderer` walks the nodes and writes HTML through `HtmlWriter`.
 
+`templateUrl` and `styleUrl` are classpath resources resolved relative to the component's package, the way Angular resolves them relative to the component file: `card.html`, `./card.html` and `../shared/card.html` all work, and a leading `/` is classpath-absolute. Components can live in any subpackage; keep their files next to the class.
+
 ## Expression semantics
 
 - Numbers are `Long` when integral and `Double` otherwise; results are normalized so `6 / 3` is `2`, not `2.0`. Values passed to Java methods or stored into typed signals are coerced to the declared type, including through generics (`WritableSignal<Integer>.set`).

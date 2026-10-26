@@ -90,4 +90,29 @@ class ComponentDefsTest {
     void templateUrlResolvesRelativeToThePackage() {
         assertEquals("<p>from file</p>", ComponentDefs.of(FromFile.class, 0).templateSource().trim());
     }
+
+    @Component(selector = "app-dot-file", templateUrl = "./component-defs-test.html")
+    public static class FromDotFile {}
+
+    @Component(selector = "app-parent-file", templateUrl = "../component/component-defs-test.html")
+    public static class FromParentFile {}
+
+    @Component(selector = "app-absolute-file", templateUrl = "/dev/isira/jaspring/component/component-defs-test.html")
+    public static class FromAbsoluteFile {}
+
+    @Test
+    void templateUrlAcceptsAngularStyleRelativeSegments() {
+        assertEquals("<p>from file</p>", ComponentDefs.of(FromDotFile.class, 0).templateSource().trim());
+        assertEquals("<p>from file</p>", ComponentDefs.of(FromParentFile.class, 0).templateSource().trim());
+        assertEquals("<p>from file</p>", ComponentDefs.of(FromAbsoluteFile.class, 0).templateSource().trim());
+    }
+
+    @Component(selector = "app-missing-file", templateUrl = "sub/missing.html")
+    public static class MissingFile {}
+
+    @Test
+    void missingTemplateFileNamesTheResolvedPath() {
+        final var error = assertThrows(IllegalStateException.class, () -> ComponentDefs.of(MissingFile.class, 0));
+        assertTrue(error.getMessage().contains("classpath:dev/isira/jaspring/component/sub/missing.html"), error.getMessage());
+    }
 }

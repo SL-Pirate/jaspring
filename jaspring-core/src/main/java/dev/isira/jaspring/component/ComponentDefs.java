@@ -5,6 +5,7 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,16 +96,37 @@ public final class ComponentDefs {
         return fields;
     }
 
-    /// Resolves `templateUrl` / `styleUrl` relative to the component's package, like Angular resolves them relative to the file.
+    /// Resolves `templateUrl` / `styleUrl` relative to the component's package, like Angular resolves them relative to
+    /// the file: `card.html`, `./card.html` and `../shared/card.html` all work, and a leading `/` is classpath-absolute.
     static String resource(Class<?> type, String url) {
-        try (var in = type.getResourceAsStream(url)) {
+        final var path = resourcePath(type, url);
+        try (var in = type.getResourceAsStream("/" + path)) {
             if (in == null) {
-                throw new IllegalStateException("Resource '" + url + "' for " + type.getSimpleName() + " not found next to "
-                        + type.getPackageName().replace('.', '/'));
+                throw new IllegalStateException("Resource '" + url + "' for " + type.getSimpleName() + " not found at classpath:"
+                        + path + " (templateUrl and styleUrl are relative to the component's package)");
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    // `.` and `..` are folded here because jar lookups take resource names literally.
+    static String resourcePath(Class<?> type, String url) {
+        final var segments = new ArrayDeque<String>();
+        if (!url.startsWith("/")) {
+            for (final var part : type.getPackageName().split("\\.")) {
+                if (!part.isEmpty()) segments.add(part);
+            }
+        }
+        for (final var part : url.split("/")) {
+            if (part.isEmpty() || part.equals(".")) continue;
+            if (!part.equals("..")) {
+                segments.add(part);
+            } else if (segments.pollLast() == null) {
+                throw new IllegalStateException("Resource '" + url + "' for " + type.getSimpleName() + " points above the classpath root");
+            }
+        }
+        return String.join("/", segments);
     }
 }

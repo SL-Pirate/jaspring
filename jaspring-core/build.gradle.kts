@@ -12,6 +12,7 @@ dependencies {
 	testImplementation(libs.mockito.core)
 	testImplementation(libs.spring.test)
 	testImplementation(libs.jackson.databind)
+	testImplementation(libs.jakarta.annotation)
 	testRuntimeOnly(libs.junit.launcher)
 }
 

@@ -122,6 +122,8 @@ public final class ExpressionEvaluator {
     private static Object callee(Expr receiverExpr, EvaluationContext ctx) {
         return switch (receiverExpr) {
             case Expr.PropertyRead p when p.receiver() instanceof Expr.ImplicitReceiver -> {
+                // Angular's $any() only silences the type checker; at runtime it is the identity.
+                if (p.name().equals("$any")) yield (JsFunction) args -> args.length == 0 ? JsUndefined.INSTANCE : args[0];
                 final var local = ctx.scope().find(p.name());
                 yield local != Scope.MISSING ? local : MemberAccessor.readForCall(ctx.component(), p.name(), null);
             }

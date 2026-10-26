@@ -23,6 +23,7 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 mockito-core = { module = "org.mockito:mockito-core" }
 jackson-databind = { module = "tools.jackson.core:jackson-databind" }
+jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

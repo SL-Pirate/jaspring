@@ -25,7 +25,7 @@ Apply the matching release in the application's `build.gradle.kts`:
 ```kotlin
 plugins {
     java
-    id("dev.isira.jaspring") version "0.2.0"
+    id("dev.isira.jaspring") version "0.3.0"
 }
 ```
 

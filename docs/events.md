@@ -31,7 +31,13 @@ jaspring.hooks.register('sparkline', {
 
 The shim calls `mounted` when a hooked element is in the document (at load, after a patch adds it, or when the hook is registered later), `updated` after a patch morphs the element's view (`ctx.params` is re-read first), and `destroyed` when the element leaves the document. Every method receives `(el, ctx, ...args)`; `ctx` has `page`, `el`, `name`, `params` and `pushEvent(type, detail)`.
 
-`pushEvent` dispatches a bubbling `CustomEvent`, so the component receives it through an ordinary binding: `<canvas data-jsp-hook="sparkline" (point-picked)="pick($event.detail.index)">`. Nothing on the server knows about hooks; only the element attribute and the event binding exist in the template. Hook-managed DOM inside the element is morphed like everything else, so keep client state in the hook object or in the browser, not in the markup.
+`pushEvent` dispatches a bubbling `CustomEvent`, so the component receives it through an ordinary binding: `<canvas data-jsp-hook="sparkline" (point-picked)="pick($event.detail.index)">`. Nothing on the server knows about hooks; only the element attribute and the event binding exist in the template.
+
+A patch morphs the whole changed view, hooked elements and their children included, so attributes, inline styles and child nodes that a script added are removed. Add `data-jsp-ignore` to an element whose DOM a widget owns (editors, maps, date pickers, Chart.js canvases). A patch then keeps its children and its attributes, and only adds or updates its `data-*` attributes, so new `data-jsp-hook-params` still reach `updated`. Removing `data-jsp-ignore` from the template lets the next patch morph the element again. Give the element a stable `id` so the morph always matches it to the same node.
+
+```html
+<div id="editor" data-jsp-hook="editor" data-jsp-ignore [attr.data-jsp-hook-params]="doc() | json"></div>
+```
 
 ## Calling the browser
 
@@ -42,7 +48,7 @@ Browser.current().call("sparkline.size").thenAccept(size -> status.set("canvas "
 Browser.current().call("viewport").whenComplete((value, error) -> ...);
 ```
 
-`hook.method` runs that method of the hook mounted inside the component's host element; a bare name runs a function registered with `jaspring.calls.register('viewport', () => ({ width: innerWidth }))`. Functions may return a promise. The returned `ZoneTask` completes inside a page turn with the JSON value the client returned (maps, lists, strings, numbers, booleans or null), so continuations may write signals and the resulting patches go out as usual. The page is unstable until the answer arrives, so the HTTP transport keeps polling; a call made while the page is first rendered travels with the document and does not delay it. A client error, an unregistered target or 30 seconds without an answer fail the task with `BrowserCallException`; destroying the page cancels open calls. With `jaspring.live.transport=off` every call fails at once.
+`hook.method` runs that method of the hook mounted inside the component's host element; a bare name runs a function registered with `jaspring.calls.register('viewport', () => ({ width: innerWidth }))`. Functions may return a promise. The returned `ZoneTask` completes inside a page turn with the JSON value the client returned (maps, lists, strings, numbers, booleans or null; up to 4 MiB characters over the WebSocket), so continuations may write signals and the resulting patches go out as usual. The page is unstable until the answer arrives, so the HTTP transport keeps polling; a call made while the page is first rendered travels with the document and does not delay it. A client error, an unregistered target, a result above the WebSocket limit or 30 seconds without an answer fail the task with `BrowserCallException`; destroying the page cancels open calls. With `jaspring.live.transport=off` every call fails at once.
 
 ## Browser closures
 

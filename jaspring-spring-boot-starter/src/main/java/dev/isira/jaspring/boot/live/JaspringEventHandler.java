@@ -18,7 +18,14 @@ import dev.isira.jaspring.live.PatchSet;
 
 /// One socket per page. `join` attaches the socket as the page's patch sink (a reconnect gets a full resync),
 /// `event` runs a turn and sends its patches, and pushes from forked work go out as they happen.
+///
+/// Incoming messages are taken as fragments and joined here, so the container's text message buffer (8 KB on
+/// Tomcat) does not limit them and the application's other WebSocket endpoints keep their own settings.
 public class JaspringEventHandler extends TextWebSocketHandler {
+
+    /// Largest client message, in characters. The shim answers a larger call result with an error instead of
+    /// sending it; anything else above this closes the socket.
+    static final int MAX_MESSAGE_CHARS = 4 * 1024 * 1024;
 
     private static final String SESSION_ID = "HTTP.SESSION.ID";
 
@@ -26,6 +33,7 @@ public class JaspringEventHandler extends TextWebSocketHandler {
     private final LiveSessions sessions;
     private final ProtocolCodec codec;
     private final Map<String, Attached> attached = new ConcurrentHashMap<>();
+    private final Map<String, StringBuilder> fragments = new ConcurrentHashMap<>();
 
     private record Attached(WebSocketSession socket, LivePage page) {}
 
@@ -36,9 +44,27 @@ public class JaspringEventHandler extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession rawSession, TextMessage message) throws Exception {
+    public boolean supportsPartialMessages() {
+        return true;
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession rawSession, TextMessage fragment) throws Exception {
+        final var buffer = fragments.computeIfAbsent(rawSession.getId(), id -> new StringBuilder());
+        if (buffer.length() + fragment.getPayloadLength() > MAX_MESSAGE_CHARS) {
+            fragments.remove(rawSession.getId());
+            rawSession.close(CloseStatus.TOO_BIG_TO_PROCESS);
+            return;
+        }
+        buffer.append(fragment.getPayload());
+        if (!fragment.isLast()) return;
+        fragments.remove(rawSession.getId());
+        handleWholeMessage(rawSession, buffer.toString());
+    }
+
+    private void handleWholeMessage(WebSocketSession rawSession, String payload) throws IOException {
         final var socket = attached.containsKey(rawSession.getId()) ? attached.get(rawSession.getId()).socket() : decorate(rawSession);
-        final var client = codec.decode(message.getPayload());
+        final var client = codec.decode(payload);
         switch (client.type()) {
             case "join" -> join(socket, client.page());
             case "event" -> turn(socket, client, page -> runtime.handleEvent(page, new EventEnvelope(client.handler(), client.event())));
@@ -102,11 +128,13 @@ public class JaspringEventHandler extends TextWebSocketHandler {
     }
 
     private static WebSocketSession decorate(WebSocketSession session) {
-        return new ConcurrentWebSocketSessionDecorator(session, 10_000, 512 * 1024);
+        // Room for several large patches queued behind a slow send; going over the limit drops the socket.
+        return new ConcurrentWebSocketSessionDecorator(session, 10_000, 16 * 1024 * 1024);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        fragments.remove(session.getId());
         final var entry = attached.remove(session.getId());
         if (entry == null) return;
         final var state = sessions.state(entry.page());

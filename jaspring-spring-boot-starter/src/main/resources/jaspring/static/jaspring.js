@@ -2,7 +2,7 @@
    element hooks registered by page scripts, and answers the server's calls into the browser.
    Transports: WebSocket (default, falls back to HTTP when it cannot connect) and HTTP POST with polling.
    Protocol: docs/protocol.md. Markers: data-jsp-v (view host), data-jsp-on (events), data-jsp-model (ngModel),
-   data-jsp-hook (client hook, optional data-jsp-hook-params). */
+   data-jsp-hook (client hook, optional data-jsp-hook-params), data-jsp-ignore (morph leaves the element's DOM alone). */
 (function () {
   'use strict';
 
@@ -14,6 +14,8 @@
 
   var NON_BUBBLING = { focus: true, blur: true, mouseenter: true, mouseleave: true, load: true, error: true, scroll: true };
   var MODIFIERS = { alt: true, control: true, meta: true, shift: true };
+  // Matches JaspringEventHandler.MAX_MESSAGE_CHARS.
+  var MAX_SOCKET_MESSAGE_CHARS = 4 * 1024 * 1024;
   var listening = {};
   var lastSeq = 0;
   var transport = null;
@@ -344,6 +346,20 @@
     if (node.nodeType === 1) hookedElements(node).forEach(destroyHook);
   }
 
+  // Idiomorph callback: an element marked data-jsp-ignore keeps its children and the attributes a widget gave it.
+  // Only data-* attributes follow the server, so hook params still reach updated (like Phoenix's phx-update="ignore").
+  function keepIgnored(oldNode, newNode) {
+    // Both sides must carry the marker, so the server can stop ignoring an element by dropping it.
+    if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return true;
+    if (!oldNode.hasAttribute('data-jsp-ignore') || !newNode.hasAttribute('data-jsp-ignore')) return true;
+    Array.prototype.forEach.call(newNode.attributes, function (attribute) {
+      if (attribute.name.indexOf('data-') === 0 && oldNode.getAttribute(attribute.name) !== attribute.value) {
+        oldNode.setAttribute(attribute.name, attribute.value);
+      }
+    });
+    return false;
+  }
+
   // Elements that left the document without a removal callback (moved aside by the morph, or replaced wholesale).
   function sweepDetached() {
     mounted.forEach(function (entry, element) {
@@ -410,7 +426,7 @@
           if (!host) return;
           modelStateFrom(patch.html, modelState);
           if (window.Idiomorph) {
-            window.Idiomorph.morph(host, patch.html, { morphStyle: 'outerHTML', ignoreActiveValue: true, callbacks: { beforeNodeRemoved: destroyIn } });
+            window.Idiomorph.morph(host, patch.html, { morphStyle: 'outerHTML', ignoreActiveValue: true, callbacks: { beforeNodeRemoved: destroyIn, beforeNodeMorphed: keepIgnored } });
           } else {
             host.outerHTML = patch.html;
           }
@@ -454,10 +470,26 @@
     var attempts = 0;
     var api = {
       send: function (message) {
-        if (socket && socket.readyState === WebSocket.OPEN && joined) socket.send(JSON.stringify(message));
-        else if (message.t !== 'pong') queue.push(message);
+        if (!(socket && socket.readyState === WebSocket.OPEN && joined)) {
+          if (message.t !== 'pong') queue.push(message);
+          return;
+        }
+        var json = encodeForSocket(message);
+        if (json !== null) socket.send(json);
       }
     };
+
+    // The server closes the socket on a message above its limit, so an oversized result fails its call instead.
+    function encodeForSocket(message) {
+      var json = JSON.stringify(message);
+      if (json.length <= MAX_SOCKET_MESSAGE_CHARS) return json;
+      if (message.t === 'result') {
+        return JSON.stringify({ t: 'result', page: pageId, id: message.id, error: {
+          message: 'Result is ' + json.length + ' characters; the WebSocket limit is ' + MAX_SOCKET_MESSAGE_CHARS } });
+      }
+      console.error('[jaspring] dropped a ' + message.t + ' message of ' + json.length + ' characters, above the WebSocket limit');
+      return null;
+    }
 
     function connect() {
       var url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/_jaspring/ws';

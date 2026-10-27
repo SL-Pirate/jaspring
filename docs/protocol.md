@@ -8,6 +8,7 @@ The server and the client shim exchange JSON messages. The same messages travel 
 - `data-jsp-on="<event>[.keys]:<ref>[:flags] ..."` on elements with event bindings. `ref` is `<viewId>.<n>` and identifies the handler occurrence and the scope it was rendered in (loop variables included). Flags: `pd` prevent default, `sp` stop propagation, `w` the handler runs a browser closure (hovering or focusing the element warms the WebAssembly runtime). A `window:` or `document:` prefix targets those objects (`window:resize:3.1`).
 - `data-jsp-model="<ref> ..."` on inputs with `[(ngModel)]` or `(ngModelChange)`.
 - `data-jsp-hook="<name>"` (optionally `data-jsp-hook-params`, JSON) is written by the template author; the shim runs the hook registered under that name. The server never reads it.
+- `data-jsp-ignore` is also written by the template author. When both the old and the new element carry it, a patch leaves its children and attributes alone and only adds or updates its `data-*` attributes.
 - The shim script tag carries `data-jsp-page` and `data-jsp-transport`, plus `data-jsp-pending="true"` when messages already wait for the client (calls made while rendering, late patches), so the HTTP shim polls at once.
 - When the application has browser closures, a second tag loads `/_jaspring/jaspring-wasm.js` with `data-jsp-wasm-js` and `data-jsp-wasm-bin` (the launcher and module under `/_jaspring/app/<digest>/`) and `data-jsp-wasm-policy` (`eager` or `idle`); eager pages also carry `<link rel="preload">` hints. See [browser.md](browser.md).
 
@@ -31,6 +32,8 @@ Serialized event: `type`, `key`, `code`, `altKey`, `ctrlKey`, `metaKey`, `shiftK
 | `redirect` | `url` | navigate |
 | `error` | `code`, `message` | `unknown-page` makes the shim reload; other codes are logged |
 | `ping` | | keepalive (WebSocket only) |
+
+A WebSocket client message may be up to 4 MiB characters (`JaspringEventHandler.MAX_MESSAGE_CHARS`). The handler joins fragments itself, so the container's text buffer does not apply. A larger message closes the socket with 1009; the shim answers an oversized `result` with an error instead of sending it. Server messages have no limit.
 
 Calls follow the patches of the same turn, so a hook mounted by a patch exists before a call targets it. Over HTTP a response is `{"messages": [...], "pending": bool}`; `pending` tells the shim to poll until forked work has finished and every outstanding call has been answered. `result` messages are posted to `/_jaspring/event` like events. A `410 Gone` means the page is no longer live.
 

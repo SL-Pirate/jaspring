@@ -78,3 +78,29 @@ test('a failing hook method is logged and does not break the patch', async () =>
   assert.equal(h.errors.length, 1);
   assert.match(h.errors[0], /hook bad\.mounted failed/);
 });
+
+test('data-jsp-ignore keeps widget DOM and attributes through a patch, follows data attributes and still updates', async () => {
+  const h = load({ body: HOST('<p id="p">one</p><div id="w" data-jsp-hook="widget" data-jsp-ignore data-jsp-hook-params="[1]"></div>') });
+  h.open();
+  const { log, hook } = recorder();
+  h.jaspring.hooks.register('widget', hook);
+  const widget = h.document.getElementById('w');
+  widget.innerHTML = '<canvas id="built"></canvas>';
+  widget.setAttribute('style', 'width: 240px');
+
+  h.deliver({ t: 'patch', seq: 1, patches: [{ v: 1, html: HOST('<p id="p">two</p><div id="w" data-jsp-hook="widget" data-jsp-ignore data-jsp-hook-params="[1,2]">server</div>') }] });
+
+  assert.equal(h.document.getElementById('p').textContent, 'two', 'the rest of the view is morphed');
+  assert.equal(h.document.getElementById('w'), widget);
+  assert.ok(h.document.getElementById('built'), 'children the widget built are kept');
+  assert.equal(widget.getAttribute('style'), 'width: 240px', 'attributes the widget set are kept');
+  assert.deepEqual(log, ['mounted:w:[1]', 'updated:w:[1,2]']);
+});
+
+test('dropping data-jsp-ignore lets the next patch morph the element again', async () => {
+  const h = load({ body: HOST('<div id="w" data-jsp-ignore>old</div>') });
+  h.open();
+
+  h.deliver({ t: 'patch', seq: 1, patches: [{ v: 1, html: HOST('<div id="w">new</div>') }] });
+  assert.equal(h.document.getElementById('w').textContent, 'new');
+});

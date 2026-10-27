@@ -27,9 +27,9 @@ class WebSocketTransportTest {
 
     @LocalServerPort int port;
 
-    @Test
-    void joinEventAndPushOverOneSocket() throws Exception {
-        AsyncComponent.delayMillis = 300;
+    private record Connection(String pageId, WebSocket socket, LinkedBlockingQueue<String> received) {}
+
+    private Connection connect() throws Exception {
         final var cookies = new CookieManager();
         final var http = HttpClient.newBuilder().cookieHandler(cookies).build();
         final var page = http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/")).build(), HttpResponse.BodyHandlers.ofString());
@@ -58,6 +58,17 @@ class WebSocketTransportTest {
                     }
                 }).get(5, TimeUnit.SECONDS);
 
+        return new Connection(pageId, socket, received);
+    }
+
+    @Test
+    void joinEventAndPushOverOneSocket() throws Exception {
+        AsyncComponent.delayMillis = 300;
+        final var connection = connect();
+        final var pageId = connection.pageId();
+        final var socket = connection.socket();
+        final var received = connection.received();
+
         socket.sendText("{\"t\":\"join\",\"page\":\"" + pageId + "\"}", true).get(5, TimeUnit.SECONDS);
         final var pushed = received.poll(5, TimeUnit.SECONDS);
         assertTrue(pushed != null && pushed.contains("<li>ann</li><li>bob</li>"), "forked completion was pushed: " + pushed);
@@ -79,6 +90,30 @@ class WebSocketTransportTest {
         socket.sendText("{\"t\":\"event\",\"page\":\"nope\",\"h\":\"2.1\",\"ev\":{}}", true).get(5, TimeUnit.SECONDS);
         final var error = received.poll(5, TimeUnit.SECONDS);
         assertTrue(error != null && error.contains("unknown-page"), String.valueOf(error));
+        socket.sendClose(WebSocket.NORMAL_CLOSURE, "done").get(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void resultsAboveTheContainerTextBufferArriveWhole() throws Exception {
+        AsyncComponent.delayMillis = 300;
+        final var connection = connect();
+        final var pageId = connection.pageId();
+        final var socket = connection.socket();
+        final var received = connection.received();
+        socket.sendText("{\"t\":\"join\",\"page\":\"" + pageId + "\"}", true).get(5, TimeUnit.SECONDS);
+        socket.sendText("{\"t\":\"event\",\"page\":\"" + pageId + "\",\"h\":\"4.1\",\"ev\":{\"type\":\"click\"}}", true).get(5, TimeUnit.SECONDS);
+        var call = received.poll(5, TimeUnit.SECONDS);
+        while (call != null && !call.contains("\"t\":\"call\"")) call = received.poll(5, TimeUnit.SECONDS);
+        assertTrue(call != null, "call arrived");
+        final var idMatcher = Pattern.compile("\"id\":\"(\\d+)\"").matcher(call);
+        assertTrue(idMatcher.find());
+
+        // Tomcat's default text buffer is 8 KB; this result once closed the socket.
+        final var large = "x".repeat(100 * 1024);
+        socket.sendText("{\"t\":\"result\",\"page\":\"" + pageId + "\",\"id\":\"" + idMatcher.group(1) + "\",\"value\":\"" + large + "\"}", true)
+                .get(5, TimeUnit.SECONDS);
+        final var applied = received.poll(5, TimeUnit.SECONDS);
+        assertTrue(applied != null && applied.contains("\"t\":\"patch\"") && applied.contains(large), "large result applied and patched back");
         socket.sendClose(WebSocket.NORMAL_CLOSURE, "done").get(5, TimeUnit.SECONDS);
     }
 }

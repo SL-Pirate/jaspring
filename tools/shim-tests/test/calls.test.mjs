@@ -61,3 +61,19 @@ test('an undefined return value is sent as null', async () => {
   await settle();
   assert.deepEqual(h.sentOverSocket()[0], { t: 'result', page: PAGE, id: '8', value: null });
 });
+
+test('a result above the WebSocket limit fails the call instead of being sent', async () => {
+  const h = load({ body: HOST });
+  h.open();
+  h.jaspring.calls.register('huge', () => 'x'.repeat(4 * 1024 * 1024));
+  h.jaspring.calls.register('large', () => 'x'.repeat(100 * 1024));
+
+  h.deliver({ t: 'call', id: '1', target: 'huge', args: [] });
+  h.deliver({ t: 'call', id: '2', target: 'large', args: [] });
+  await settle();
+
+  const [huge, large] = h.sentOverSocket();
+  assert.equal(huge.id, '1');
+  assert.match(huge.error.message, /WebSocket limit/);
+  assert.equal(large.value.length, 100 * 1024, 'results below the limit go through');
+});

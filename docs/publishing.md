@@ -24,7 +24,7 @@ such as `-rc.1`. `releaseVersion` rejects snapshots and malformed values.
 
 ## Local verification
 
-Use JDK 25, preferably GraalVM, and the committed Gradle wrapper. Normal JVM builds
+Use JDK 25, preferably GraalVM 25.2.4, and the committed Gradle wrapper. Normal JVM builds
 use the committed JavaScript bundle and do not need Node or pnpm.
 
 ```sh
@@ -48,6 +48,38 @@ To install the development version for another local application:
 
 Use `dev.isira:jaspring-spring-boot-starter:0.0.1-SNAPSHOT` and add `mavenLocal()` to
 the consuming Gradle build. Maven uses its local repository automatically.
+
+## Container checks
+
+On Linux x86-64 with Podman, Git and Python 3 installed:
+
+```sh
+bash tools/ci/run.sh
+```
+
+This runs the Build workflow's Gradle build, tests, local Maven publications and
+Python checks in Ubuntu 24.04 with Oracle GraalVM 25.2.4. It copies tracked
+working-tree files, including edits, into `build/ci-podman.*/workspace`; stage new
+source files before running to include them. Test reports and local artifacts stay
+in that snapshot. A dedicated Podman volume, `jaspring-ci-repro-gradle`, caches
+Gradle downloads. Host Gradle configuration and publishing credentials are not
+mounted, and nothing is uploaded to Central.
+
+To run just the GraalJS runtime test:
+
+```sh
+bash tools/ci/run.sh :jaspring-core:test --tests dev.isira.jaspring.GraalJsSmokeTest
+```
+
+The container matches the build OS, JDK and commands, but does not emulate the
+GitHub Actions service, runner kernel or action wrappers. Set `GRAALVM_URL` to
+another Linux x64 GraalVM archive to compare runtimes.
+
+Keep the GraalVM version in both workflows and the Containerfile aligned with
+`graal` in `gradle/libs.versions.toml`. Java's version alone is insufficient:
+GraalVM 25.0.4 and 25.2.4 both use JDK 25.0.4, but only the latter provides a
+compiler compatible with this project's Polyglot 25.2.4. The former falls back to
+interpreted execution and fails the optimizing-runtime smoke test.
 
 ## Central Portal setup
 

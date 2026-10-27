@@ -175,16 +175,20 @@ class LivePageTest {
         AsyncList.gate = new CountDownLatch(1);
         final var pushed = new CopyOnWriteArrayList<PatchSet>();
         final var arrived = new CountDownLatch(1);
+        final var settled = new CountDownLatch(1);
         final var page = page(registry(AsyncList.class), AsyncList.class, Zone.Mode.ZONE, patches -> {
             pushed.add(patches);
             arrived.countDown();
         });
+        page.zone().onStable(settled::countDown);
         final var html = page.renderInitial(Duration.ofMillis(200));
 
         assertTrue(html.contains("loading"), html);
         AsyncList.gate.countDown();
         assertTrue(arrived.await(2, TimeUnit.SECONDS));
         assertTrue(pushed.get(0).patches().get(0).html().contains("<li>ann</li>"));
+        // Patches are delivered before the completion turn marks the zone stable.
+        assertTrue(settled.await(2, TimeUnit.SECONDS), "page should settle after publishing its patches");
         assertTrue(page.zone().isStable());
     }
 

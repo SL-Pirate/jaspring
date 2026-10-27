@@ -32,7 +32,11 @@ class GraalJsSmokeTest {
                 "optimizing runtime is only expected on a GraalVM JDK");
 
         try (var engine = Engine.create()) {
-            assertNotEquals("Interpreted", engine.getImplementationName());
+            assertNotEquals("Interpreted", engine.getImplementationName(), () ->
+                    "Expected an optimizing GraalJS runtime. Java: %s; GraalVM: %s; Polyglot: %s. "
+                            .formatted(System.getProperty("java.runtime.version"),
+                                    System.getProperty("java.vendor.version"), engine.getVersion())
+                            + "Use a GraalVM compiler release compatible with the Polyglot dependency.");
         }
     }
 }

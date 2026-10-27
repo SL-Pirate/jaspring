@@ -71,7 +71,9 @@ For Maven:
 The starter includes core and the GraalJS runtime transitively. Add Spring Boot's
 `spring-boot-starter-websocket` if you want WebSocket transport; otherwise Jaspring
 uses HTTP. Run with `--enable-native-access=ALL-UNNAMED` for GraalJS native access.
-GraalVM JDK 25 enables the optimizing runtime; other Java 25 JDKs use the interpreter.
+Use GraalVM 25.2.4 (based on JDK 25) for the optimizing runtime. Its compiler must
+match the bundled GraalJS release; incompatible GraalVM releases and other Java 25
+JDKs use the interpreter.
 
 For local installation and Maven Central releases, see [Publishing](docs/publishing.md).
 
@@ -114,7 +116,8 @@ CLI options include `--flat`, `--prefix`, `--inline-template`, `--inline-style` 
 ./gradlew :jaspring-sample:bootRun
 ```
 
-Open http://localhost:8080/. Requires a GraalVM JDK 25 for the optimizing JavaScript runtime; other JDKs work with a warning and slower startup.
+Open http://localhost:8080/. Use GraalVM 25.2.4 for the optimizing JavaScript runtime;
+other Java 25 JDKs work with a warning and slower startup.
 
 The sample applies the Gradle plugin directly from this checkout. Generate a component
 using its configured default package (`dev.isira.jaspring.sample.components`):

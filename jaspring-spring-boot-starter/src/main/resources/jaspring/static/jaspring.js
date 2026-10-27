@@ -1,12 +1,15 @@
-/* Jaspring client shim. Sends DOM events to the server and morphs the patches it returns into the page.
+/* Jaspring client shim. Sends DOM events to the server, morphs the patches it returns into the page, runs the
+   element hooks registered by page scripts, and answers the server's calls into the browser.
    Transports: WebSocket (default, falls back to HTTP when it cannot connect) and HTTP POST with polling.
-   Protocol: docs/protocol.md. Markers: data-jsp-v (view host), data-jsp-on (events), data-jsp-model (ngModel). */
+   Protocol: docs/protocol.md. Markers: data-jsp-v (view host), data-jsp-on (events), data-jsp-model (ngModel),
+   data-jsp-hook (client hook, optional data-jsp-hook-params). */
 (function () {
   'use strict';
 
   var script = document.currentScript;
   var pageId = script && script.getAttribute('data-jsp-page');
   var transportName = (script && script.getAttribute('data-jsp-transport')) || 'websocket';
+  var pendingAtLoad = !!(script && script.getAttribute('data-jsp-pending'));
   if (!pageId) return;
 
   var NON_BUBBLING = { focus: true, blur: true, mouseenter: true, mouseleave: true, load: true, error: true, scroll: true };
@@ -17,6 +20,10 @@
   // Values sent per ngModel ref. A patch echoing one of them must not touch the input the user is typing in;
   // a value the client never sent means the server changed the model and the input follows it.
   var sentModelValues = {};
+  var hooks = {};
+  var calls = {};
+  // Hooked element -> { name, hook, el, ctx }, for the elements whose hook is registered.
+  var mounted = new Map();
 
   // ---------- event serialization ----------
 
@@ -116,18 +123,27 @@
       binding.ref = ref;
       binding.preventDefault = flags.indexOf('pd') >= 0;
       binding.stopPropagation = flags.indexOf('sp') >= 0;
+      binding.wasm = flags.split(',').indexOf('w') >= 0;
       return binding;
     });
   }
 
   function scan() {
     var types = {};
+    var wasmHandlers = false;
     document.querySelectorAll('[data-jsp-on]').forEach(function (element) {
       parseBindings(element.getAttribute('data-jsp-on')).forEach(function (binding) {
         var key = (binding.target || '') + ':' + binding.event;
         types[key] = binding;
+        if (binding.wasm) wasmHandlers = true;
       });
     });
+    if (wasmHandlers && !listening['~warm']) {
+      // Hovering or focusing a handler that runs a browser closure starts loading the WebAssembly runtime.
+      listening['~warm'] = true;
+      document.addEventListener('pointerover', warmOnIntent, { capture: true, passive: true });
+      document.addEventListener('focusin', warmOnIntent, { capture: true, passive: true });
+    }
     if (document.querySelector('[data-jsp-model]')) {
       types[':input'] = { event: 'input' };
       types[':change'] = { event: 'change' };
@@ -144,6 +160,20 @@
         document.addEventListener(binding.event, dispatch, capture);
       }
     });
+  }
+
+  function warmOnIntent(event) {
+    var wasm = window.jaspring && window.jaspring.wasm;
+    if (!wasm || wasm.loaded()) return;
+    var node = event.target;
+    while (node && node !== document) {
+      if (node.nodeType === 1 && node.hasAttribute('data-jsp-on')
+          && parseBindings(node.getAttribute('data-jsp-on')).some(function (binding) { return binding.wasm; })) {
+        wasm.warm();
+        return;
+      }
+      node = node.parentNode;
+    }
   }
 
   function dispatchGlobal(target, event) {
@@ -241,6 +271,131 @@
     });
   }
 
+  // ---------- hooks ----------
+  // A hook is an object registered with jaspring.hooks.register(name, hook). Its methods receive (el, ctx, ...args):
+  // mounted/updated/destroyed follow the element through patches; other methods answer server calls "name.method".
+
+  function readParams(element) {
+    var raw = element.getAttribute('data-jsp-hook-params');
+    if (raw === null || raw === '') return {};
+    try { return JSON.parse(raw); } catch (e) { return raw; }
+  }
+
+  function hookContext(element, name) {
+    return {
+      page: pageId,
+      el: element,
+      name: name,
+      params: readParams(element),
+      // A bubbling CustomEvent reaches the component's (type)="..." binding with the detail under $event.detail.
+      pushEvent: function (type, detail) {
+        element.dispatchEvent(new CustomEvent(type, { bubbles: true, detail: detail }));
+      }
+    };
+  }
+
+  function callHook(entry, method, args) {
+    var fn = entry.hook[method];
+    if (typeof fn !== 'function') return undefined;
+    return fn.apply(entry.hook, [entry.el, entry.ctx].concat(args || []));
+  }
+
+  function notifyHook(entry, method) {
+    try {
+      callHook(entry, method);
+    } catch (error) {
+      console.error('[jaspring] hook ' + entry.name + '.' + method + ' failed', error);
+    }
+  }
+
+  function hookedElements(root) {
+    var out = [];
+    if (root.nodeType === 1 && root.hasAttribute('data-jsp-hook')) out.push(root);
+    root.querySelectorAll('[data-jsp-hook]').forEach(function (element) { out.push(element); });
+    return out;
+  }
+
+  function mountOrUpdate(root) {
+    hookedElements(root).forEach(function (element) {
+      var entry = mounted.get(element);
+      if (entry) {
+        entry.ctx.params = readParams(element);
+        notifyHook(entry, 'updated');
+        return;
+      }
+      var name = element.getAttribute('data-jsp-hook');
+      var hook = hooks[name];
+      if (!hook) return;
+      entry = { name: name, hook: hook, el: element, ctx: hookContext(element, name) };
+      mounted.set(element, entry);
+      notifyHook(entry, 'mounted');
+    });
+  }
+
+  function destroyHook(element) {
+    var entry = mounted.get(element);
+    if (!entry) return;
+    mounted.delete(element);
+    notifyHook(entry, 'destroyed');
+  }
+
+  // Idiomorph callback: hooks see their element while it is still in the document.
+  function destroyIn(node) {
+    if (node.nodeType === 1) hookedElements(node).forEach(destroyHook);
+  }
+
+  // Elements that left the document without a removal callback (moved aside by the morph, or replaced wholesale).
+  function sweepDetached() {
+    mounted.forEach(function (entry, element) {
+      if (!element.isConnected) destroyHook(element);
+    });
+  }
+
+  function registerHook(name, hook) {
+    hooks[name] = hook;
+    mountOrUpdate(document.documentElement);
+  }
+
+  function registerCall(name, fn) {
+    calls[name] = fn;
+  }
+
+  // ---------- calls from the server ----------
+
+  function resolveCall(message) {
+    var target = String(message.target);
+    var args = message.args || [];
+    var dot = target.indexOf('.');
+    if (dot < 0) {
+      var fn = calls[target];
+      if (typeof fn !== 'function') throw new Error('No browser function registered as "' + target + '"');
+      return fn.apply(null, args);
+    }
+    var hookName = target.substring(0, dot);
+    var method = target.substring(dot + 1);
+    var host = message.v === undefined || message.v === null ? document.documentElement : document.querySelector('[data-jsp-v="' + message.v + '"]');
+    if (!host) throw new Error('View ' + message.v + ' is not in the document');
+    var element = host.getAttribute('data-jsp-hook') === hookName ? host : host.querySelector('[data-jsp-hook="' + hookName + '"]');
+    var entry = element && mounted.get(element);
+    if (!entry) throw new Error('No mounted hook "' + hookName + '" inside view ' + message.v);
+    if (typeof entry.hook[method] !== 'function') throw new Error('Hook "' + hookName + '" has no method "' + method + '"');
+    return callHook(entry, method, args);
+  }
+
+  function invoke(message) {
+    var outcome;
+    try {
+      outcome = Promise.resolve(resolveCall(message));
+    } catch (error) {
+      outcome = Promise.reject(error);
+    }
+    outcome.then(function (value) {
+      send({ t: 'result', page: pageId, id: message.id, value: value === undefined ? null : value });
+    }, function (error) {
+      send({ t: 'result', page: pageId, id: message.id, error: { message: error && error.message ? error.message : String(error) } });
+    });
+  }
+
   // ---------- patches ----------
 
   function handle(message) {
@@ -249,18 +404,28 @@
         if (message.seq && message.seq <= lastSeq) return;
         if (message.seq) lastSeq = message.seq;
         var modelState = {};
+        var patched = [];
         message.patches.forEach(function (patch) {
           var host = document.querySelector('[data-jsp-v="' + patch.v + '"]');
           if (!host) return;
           modelStateFrom(patch.html, modelState);
           if (window.Idiomorph) {
-            window.Idiomorph.morph(host, patch.html, { morphStyle: 'outerHTML', ignoreActiveValue: true });
+            window.Idiomorph.morph(host, patch.html, { morphStyle: 'outerHTML', ignoreActiveValue: true, callbacks: { beforeNodeRemoved: destroyIn } });
           } else {
             host.outerHTML = patch.html;
           }
+          patched.push(patch.v);
         });
         syncModels(modelState);
         scan();
+        patched.forEach(function (v) {
+          var host = document.querySelector('[data-jsp-v="' + v + '"]');
+          if (host) mountOrUpdate(host);
+        });
+        sweepDetached();
+        break;
+      case 'call':
+        invoke(message);
         break;
       case 'redirect':
         window.location.assign(message.url);
@@ -362,7 +527,7 @@
       });
     }
 
-    function poll() {
+    function poll(immediately) {
       polling = true;
       setTimeout(function () {
         fetch('/_jaspring/poll?page=' + encodeURIComponent(pageId), { credentials: 'same-origin' })
@@ -376,14 +541,15 @@
             if (body.pending) poll();
           })
           .catch(function () { polling = false; });
-      }, 500);
+      }, immediately ? 0 : 500);
     }
 
-    // Work queued while the socket was failing is not lost; forked results are fetched by polling once.
+    // Work queued while the socket was failing is not lost; forked results and calls made while rendering are
+    // fetched by polling once, at once when the server said messages already wait.
     api.resume = function (pending) {
-      pending.forEach(function (message) { if (message.t === 'event') queue.push(message); });
+      pending.forEach(function (message) { if (message.t === 'event' || message.t === 'result') queue.push(message); });
       pump();
-      if (!polling) poll();
+      if (!polling) poll(pendingAtLoad);
     };
     return api;
   }
@@ -397,5 +563,12 @@
   transport = transportName === 'http' ? httpTransport() : webSocketTransport();
   if (transportName === 'http') transport.resume([]);
   scan();
-  window.jaspring = { page: pageId, send: send, transport: function () { return transportName; } };
+  window.jaspring = {
+    page: pageId,
+    send: send,
+    transport: function () { return transportName; },
+    hooks: { register: registerHook },
+    calls: { register: registerCall }
+  };
+  mountOrUpdate(document.documentElement);
 })();

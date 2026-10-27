@@ -11,6 +11,7 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import dev.isira.jaspring.boot.JaspringRuntime;
+import dev.isira.jaspring.live.BrowserResult;
 import dev.isira.jaspring.live.EventEnvelope;
 import dev.isira.jaspring.live.LivePage;
 import dev.isira.jaspring.live.PatchSet;
@@ -40,7 +41,8 @@ public class JaspringEventHandler extends TextWebSocketHandler {
         final var client = codec.decode(message.getPayload());
         switch (client.type()) {
             case "join" -> join(socket, client.page());
-            case "event" -> event(socket, client);
+            case "event" -> turn(socket, client, page -> runtime.handleEvent(page, new EventEnvelope(client.handler(), client.event())));
+            case "result" -> turn(socket, client, page -> runtime.handleResult(page, new BrowserResult(client.id(), client.value(), client.error())));
             case "pong" -> { }
             default -> send(socket, codec.error("protocol", "Unknown message type " + client.type()));
         }
@@ -63,7 +65,8 @@ public class JaspringEventHandler extends TextWebSocketHandler {
         state.queue().drain().forEach(queued -> sendPatches(socket, state, queued));
     }
 
-    private void event(WebSocketSession socket, ProtocolCodec.ClientMessage client) throws IOException {
+    private void turn(WebSocketSession socket, ProtocolCodec.ClientMessage client, java.util.function.Function<LivePage, PatchSet> body)
+            throws IOException {
         final var page = find(socket, client.page());
         if (page == null) {
             send(socket, codec.error("unknown-page", "This page is no longer live; reload"));
@@ -71,7 +74,7 @@ public class JaspringEventHandler extends TextWebSocketHandler {
         }
         final var state = sessions.state(page);
         try {
-            sendPatches(socket, state, runtime.handleEvent(page, new EventEnvelope(client.handler(), client.event())));
+            sendPatches(socket, state, body.apply(page));
         } catch (RuntimeException e) {
             send(socket, codec.error("handler", runtime.properties().isDevMode() ? String.valueOf(e.getMessage()) : "Event handler failed"));
         }

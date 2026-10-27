@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
+import dev.isira.jaspring.browser.BrowserCallException;
+import dev.isira.jaspring.browser.ClosureManifest;
 import dev.isira.jaspring.cd.ChangeDetector;
 import dev.isira.jaspring.component.ComponentRegistry;
+import dev.isira.jaspring.context.CurrentContext;
 import dev.isira.jaspring.di.PageScope;
 import dev.isira.jaspring.signals.EffectContext;
 import dev.isira.jaspring.signals.QueueEffectScheduler;
@@ -23,6 +26,7 @@ import dev.isira.jaspring.view.ViewRenderer;
 import dev.isira.jaspring.view.ViewTree;
 import dev.isira.jaspring.zone.TurnExecutor;
 import dev.isira.jaspring.zone.Zone;
+import dev.isira.jaspring.zone.ZoneTask;
 
 /// One rendered page kept alive between requests: its component tree, zone, effects and page-scoped beans.
 ///
@@ -30,6 +34,8 @@ import dev.isira.jaspring.zone.Zone;
 /// effect scheduler and the page scope, runs the body, runs change detection and collects patches. Turns of one
 /// page are serialized; different pages run concurrently on virtual threads.
 public final class LivePage implements TurnExecutor, SignalOwner {
+
+    private static final CurrentContext<LivePage> CURRENT = CurrentContext.threadLocal();
 
     private final String id;
     private final String sessionId;
@@ -41,6 +47,9 @@ public final class LivePage implements TurnExecutor, SignalOwner {
     private final ChangeDetector detector;
     private final PageScope.Beans beans;
     private final PageSpec spec;
+    private final boolean liveEvents;
+    private final BrowserCalls calls;
+    private final ClosureManifest closures;
     private volatile PatchSink sink;
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean destroyed;
@@ -50,14 +59,30 @@ public final class LivePage implements TurnExecutor, SignalOwner {
 
     public LivePage(String id, String sessionId, PageSpec spec, ComponentRegistry registry, DomSchema schema, Zone.Mode mode,
             boolean liveEvents, PatchSink sink) {
+        this(id, sessionId, spec, registry, schema, mode, liveEvents, sink, ClosureManifest.EMPTY);
+    }
+
+    /// `closures` describes the WebAssembly build of this application's browser closures; `EMPTY` without one.
+    public LivePage(String id, String sessionId, PageSpec spec, ComponentRegistry registry, DomSchema schema, Zone.Mode mode,
+            boolean liveEvents, PatchSink sink, ClosureManifest closures) {
         this.id = id;
+        this.closures = closures;
         this.sessionId = sessionId;
         this.spec = spec;
         this.sink = sink;
         this.zone = new Zone(mode, this, lock);
-        this.renderer = new ViewRenderer(registry, schema, liveEvents);
+        this.liveEvents = liveEvents;
+        this.calls = new BrowserCalls(zone, this, BrowserCalls.TIMEOUT);
+        this.renderer = new ViewRenderer(registry, schema, liveEvents, closures);
         this.detector = new ChangeDetector(mode, tree, renderer, effects);
         this.beans = new PageScope.Beans(id);
+    }
+
+    /// The page whose turn runs on this thread.
+    public static LivePage current() {
+        final var page = CURRENT.get();
+        if (page == null) throw new IllegalStateException("Not inside a Jaspring page turn");
+        return page;
     }
 
     public String id() {
@@ -70,6 +95,10 @@ public final class LivePage implements TurnExecutor, SignalOwner {
 
     public Zone zone() {
         return zone;
+    }
+
+    public ClosureManifest closures() {
+        return closures;
     }
 
     public ViewTree tree() {
@@ -139,7 +168,36 @@ public final class LivePage implements TurnExecutor, SignalOwner {
     }
 
     private <T> T bind(Supplier<T> body) {
-        return SignalOwner.runWith(this, () -> EffectContext.runWith(effects, () -> PageScope.runWith(beans, body)));
+        return CURRENT.runWith(this, () -> SignalOwner.runWith(this,
+                () -> EffectContext.runWith(effects, () -> PageScope.runWith(beans, body))));
+    }
+
+    /// Issues a browser call from inside a turn; see `Browser.call`. Without live events the task fails at once
+    /// so nothing waits for an answer that cannot come.
+    public <T> ZoneTask<T> callBrowser(String target, Long viewId, List<Object> args) {
+        if (!lock.isHeldByCurrentThread()) throw new IllegalStateException("Browser calls must be made inside a page turn");
+        if (!liveEvents) {
+            final var task = zone.<T>task();
+            task.completeExceptionally(new BrowserCallException("Browser call '" + target + "' needs live events; jaspring.live.transport is off"));
+            return task;
+        }
+        return calls.issue(target, viewId, args);
+    }
+
+    /// Completes a browser call with the client's answer, runs change detection, and returns the changed views.
+    public PatchSet handleResult(BrowserResult result) {
+        lock.lock();
+        try {
+            requestTurn = true;
+            runTurn(() -> {
+                calls.settle(result);
+                return null;
+            });
+            return collectPatches();
+        } finally {
+            requestTurn = false;
+            lock.unlock();
+        }
     }
 
     /// Renders the page for the first time and waits until forked work settles, or the timeout passes.
@@ -147,6 +205,7 @@ public final class LivePage implements TurnExecutor, SignalOwner {
         lock.lock();
         try {
             requestTurn = true;
+            calls.beginDeferring();
             // Creation already rendered every view; only effects scheduled during construction need settling.
             runTurn(() -> renderer.createRoot(tree, spec.rootComponent(), spec.inputs(), detector), false);
             clearChangeFlags();
@@ -154,6 +213,10 @@ public final class LivePage implements TurnExecutor, SignalOwner {
                 // Late completions will arrive as pushed patches instead.
             }
             clearChangeFlags();
+            // Calls made while rendering travel with the document; they count as pending only from now on.
+            final var issued = calls.drainOutgoing();
+            if (!issued.isEmpty()) sink.push(new PatchSet(List.of(), null, issued));
+            calls.activateDeferred();
             return tree.assemble(tree.root());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -213,14 +276,14 @@ public final class LivePage implements TurnExecutor, SignalOwner {
                 : envelope.payload();
         final var scope = binding.scope().with("$event", payload);
         final var context = EvaluationContext.of(view.instance()).withPipes(renderer.registry()).withScope(scope);
-        Signals.untracked(() -> {
+        ComponentView.runAs(view, () -> Signals.untracked(() -> {
             if (binding.event().type() == EventType.TWO_WAY) {
                 ExpressionEvaluator.assignTo(binding.event().handler(), payload, context);
             } else {
                 ExpressionEvaluator.evaluate(binding.event().handler(), context);
             }
             return null;
-        });
+        }));
     }
 
     @SuppressWarnings("unchecked")
@@ -233,7 +296,7 @@ public final class LivePage implements TurnExecutor, SignalOwner {
         final var patches = new ArrayList<Patch>();
         collect(tree.root(), patches);
         clearChangeFlags();
-        final var set = new PatchSet(List.copyOf(patches), redirect);
+        final var set = new PatchSet(List.copyOf(patches), redirect, calls.drainOutgoing());
         redirect = null;
         return set;
     }
@@ -261,6 +324,7 @@ public final class LivePage implements TurnExecutor, SignalOwner {
         try {
             if (destroyed) return;
             destroyed = true;
+            calls.cancelAll();
             bind(() -> {
                 if (tree.root() != null) renderer.destroy(tree, tree.root());
                 beans.destroy();

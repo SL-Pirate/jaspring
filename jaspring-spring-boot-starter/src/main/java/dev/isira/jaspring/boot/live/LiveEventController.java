@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import dev.isira.jaspring.boot.JaspringRuntime;
+import dev.isira.jaspring.live.BrowserResult;
 import dev.isira.jaspring.live.EventEnvelope;
 import dev.isira.jaspring.live.LivePage;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,8 +43,16 @@ public class LiveEventController {
         final var state = sessions.state(page);
         final var messages = new ArrayList<Map<String, Object>>();
         try {
-            final var patches = runtime.handleEvent(page, new EventEnvelope(message.handler(), message.event()));
-            messages.addAll(codec.messages(patches, state.nextSeq()));
+            final var patches = switch (message.type()) {
+                case "event" -> runtime.handleEvent(page, new EventEnvelope(message.handler(), message.event()));
+                case "result" -> runtime.handleResult(page, new BrowserResult(message.id(), message.value(), message.error()));
+                default -> null;
+            };
+            if (patches == null) {
+                messages.add(codec.error("protocol", "Unknown message type " + message.type()));
+            } else {
+                messages.addAll(codec.messages(patches, state.nextSeq()));
+            }
         } catch (RuntimeException e) {
             messages.add(codec.error("handler", runtime.properties().isDevMode() ? String.valueOf(e.getMessage()) : "Event handler failed"));
         }

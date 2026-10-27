@@ -1,0 +1,8 @@
+<h2 class="mb-2 text-xl font-semibold">Browser closures (Java in WebAssembly)</h2>
+<p class="text-sm text-gray-600">Theme from localStorage: <b>{{ theme() }}</b></p>
+<div class="mt-2 flex flex-wrap gap-2">
+  <button class="rounded bg-gray-900 px-3 py-1 text-sm text-white" (click)="toggleTheme()">Toggle theme</button>
+  <button class="rounded border border-gray-300 px-3 py-1 text-sm" (click)="locate()">Where am I?</button>
+  <button class="rounded border border-gray-300 px-3 py-1 text-sm" (click)="copyPosition()">Copy position</button>
+</div>
+<p class="mt-2 text-sm text-gray-600">{{ position() }} {{ clipboard() }}</p>

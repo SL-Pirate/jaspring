@@ -8,7 +8,7 @@ A turn takes the page lock, binds the zone, the signal owner, the effect schedul
 
 ## Zone
 
-`Zone.current()` is available inside any turn. `fork(work)` runs `work` on a virtual thread outside the zone and delivers its result as a new turn, so `thenAccept(users::set)` writes signals under the page lock and triggers change detection. The initial render waits (`whenStable`) until no fork is pending, up to `stability-timeout`; completions that arrive later are pushed to the client as patches.
+`Zone.current()` is available inside any turn. `fork(work)` runs `work` on a virtual thread outside the zone and delivers its result as a new turn, so `thenAccept(users::set)` writes signals under the page lock and triggers change detection. The initial render waits (`whenStable`) until no fork is pending, up to `stability-timeout`; completions that arrive later are pushed to the client as patches. Browser calls (`Browser.call`, `Platform.onBrowser`) are pending work too, except during the initial render: a call made then travels with the document and counts as pending only once the render has finished.
 
 Nothing is monkey-patched. "Inside the zone" means exactly: a turn, `zone.run`, a `fork` continuation, or a `wrap`ped runnable. Because turns run on virtual threads, plain blocking calls in `ngOnInit` or a handler are already inside the zone; `fork` is for loading in parallel or for not blocking the first response. Signals created during a turn remember their page and throw `SignalWriteOutsideTurnException` when written from any other thread.
 

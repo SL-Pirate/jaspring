@@ -22,8 +22,34 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+      # Binaryen's wasm-as assembles the Web Image build of browser closures; Ubuntu's package is older than
+      # the required 119, so use the pinned release (sha256 in tools/ci/binaryen.sha256).
+      - name: Install Binaryen
+        run: |
+          curl --fail --silent --show-error --location --retry 3 -o binaryen.tar.gz \
+            "https://github.com/WebAssembly/binaryen/releases/download/version_$BINARYEN_VERSION/binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          echo "$(cat tools/ci/binaryen.sha256)  binaryen.tar.gz" | sha256sum --check
+          mkdir -p "$HOME/binaryen" && tar -xzf binaryen.tar.gz --strip-components=1 -C "$HOME/binaryen"
+          echo "$HOME/binaryen/bin" >> "$GITHUB_PATH"
+          "$HOME/binaryen/bin/wasm-as" --version
+        env:
+          BINARYEN_VERSION: '133'
+      # Node runs the client shim's unit tests (tools/shim-tests); only framework developers need it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install shim test dependencies
+        run: pnpm install --frozen-lockfile --dir tools/shim-tests
       - name: Build, test and publish to a local repository
-        run: ./gradlew build publishAllPublicationsToBuildRepository --console=plain
+        run: ./gradlew build publishAllPublicationsToBuildRepository -Pjaspring.wasm=true --console=plain
+      - name: Record WebAssembly build size
+        run: |
+          ls -l jaspring-sample/build/jaspring/browser/image/ >> "$GITHUB_STEP_SUMMARY" || echo "no image built" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when the Web Image tests were skipped
+        run: python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test BuildBrowserImageTest
       - name: Verify Maven publications
         run: python3 tools/verify-publications.py
       - name: Test documentation version updates

@@ -24,8 +24,12 @@ such as `-rc.1`. `releaseVersion` rejects snapshots and malformed values.
 
 ## Local verification
 
-Use JDK 25, preferably GraalVM 25.2.4, and the committed Gradle wrapper. Normal JVM builds
-use the committed JavaScript bundle and do not need Node or pnpm.
+Use Oracle GraalVM 25.2.4 and the committed Gradle wrapper: `jaspring-browser-runtime` compiles
+against GraalVM's `org.graalvm.webimage.api` module (on another JDK 25 that module is skipped with a
+warning and the rest still builds). Normal JVM builds use the committed JavaScript bundle and do not
+need Node or pnpm; the client shim's tests (`tools/shim-tests`) run when Node 24 is installed and
+`pnpm install` was run there. The sample's WebAssembly build needs Binaryen's `wasm-as` 119+ and runs
+only with `-Pjaspring.wasm=true`.
 
 ```sh
 ./gradlew clean build publishAllPublicationsToBuildRepository
@@ -58,7 +62,7 @@ bash tools/ci/run.sh
 ```
 
 This runs the Build workflow's Gradle build, tests, local Maven publications and
-Python checks in Ubuntu 24.04 with Oracle GraalVM 25.2.4. It copies tracked
+Python checks in Ubuntu 24.04 with Oracle GraalVM 25.2.4, Binaryen and Node. It copies tracked
 working-tree files, including edits, into `build/ci-podman.*/workspace`; stage new
 source files before running to include them. Test reports and local artifacts stay
 in that snapshot. A dedicated Podman volume, `jaspring-ci-repro-gradle`, caches

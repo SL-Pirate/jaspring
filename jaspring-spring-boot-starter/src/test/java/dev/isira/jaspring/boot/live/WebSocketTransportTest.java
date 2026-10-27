@@ -66,6 +66,16 @@ class WebSocketTransportTest {
         final var patch = received.poll(5, TimeUnit.SECONDS);
         assertTrue(patch != null && patch.contains("\"t\":\"patch\"") && patch.contains(">1</span>"), String.valueOf(patch));
 
+        socket.sendText("{\"t\":\"event\",\"page\":\"" + pageId + "\",\"h\":\"4.1\",\"ev\":{\"type\":\"click\"}}", true).get(5, TimeUnit.SECONDS);
+        final var call = received.poll(5, TimeUnit.SECONDS);
+        assertTrue(call != null && call.contains("\"t\":\"call\"") && call.contains("\"target\":\"viewport\""), String.valueOf(call));
+        final var idMatcher = Pattern.compile("\"id\":\"(\\d+)\"").matcher(call);
+        assertTrue(idMatcher.find());
+        socket.sendText("{\"t\":\"result\",\"page\":\"" + pageId + "\",\"id\":\"" + idMatcher.group(1) + "\",\"value\":{\"width\":640}}", true)
+                .get(5, TimeUnit.SECONDS);
+        final var applied = received.poll(5, TimeUnit.SECONDS);
+        assertTrue(applied != null && applied.contains("\"t\":\"patch\"") && applied.contains("{width=640}"), String.valueOf(applied));
+
         socket.sendText("{\"t\":\"event\",\"page\":\"nope\",\"h\":\"2.1\",\"ev\":{}}", true).get(5, TimeUnit.SECONDS);
         final var error = received.poll(5, TimeUnit.SECONDS);
         assertTrue(error != null && error.contains("unknown-page"), String.valueOf(error));

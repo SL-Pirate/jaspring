@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "graalvm": "Oracle GraalVM 25.2.4+7.1",
+  "assets": {
+    "js": {
+      "name": "jaspring-app.js",
+      "sha256": "92aedbbf018158e071b172a36cf19d38913d8144b99fda74af9876865d2bea98",
+      "size": 74
+    },
+    "wasm": {
+      "name": "jaspring-app.js.wasm",
+      "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+      "size": 8
+    }
+  },
+  "closures": [
+    {
+      "id": "aaaaaaaaaaaaaaaa",
+      "implClass": "dev.isira.jaspring.boot.testapp.components.BrowserComponent",
+      "implMethod": "lambda$measure$1",
+      "implSignature": "(Ldev/isira/jaspring/browser/BrowserClient;)Ljava/lang/String;",
+      "captured": [],
+      "returnType": "java.lang.String",
+      "promise": false,
+      "timing": "EVENT",
+      "enclosingMethod": "measure",
+      "classSha256": null
+    },
+    {
+      "id": "bbbbbbbbbbbbbbbb",
+      "implClass": "dev.isira.jaspring.boot.testapp.components.BrowserPageComponent",
+      "implMethod": "lambda$ngOnInit$1",
+      "implSignature": "(Ldev/isira/jaspring/browser/BrowserClient;)Ljava/lang/String;",
+      "captured": [],
+      "returnType": "java.lang.String",
+      "promise": false,
+      "timing": "MOUNT",
+      "enclosingMethod": "ngOnInit",
+      "classSha256": null
+    }
+  ]
+}

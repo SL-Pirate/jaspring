@@ -29,6 +29,7 @@ Templates are Angular templates. They are parsed by Angular's own compiler (`@an
 - `class` and `style` merge from the static attribute, `[class]`/`[style]`, `[class.x]`/`[style.x.unit]`, `[ngClass]`/`[ngStyle]`, later and more specific bindings winning.
 - `<ng-container>` renders its children only. Angular's namespace prefixes (`:svg:circle`) are stripped.
 - `#ref` on a plain element resolves to an `ElementRef` with the tag name and rendered attributes; `@let` values are visible to later siblings in the same view.
+- `data-jsp-hook="name"` is an ordinary attribute the client shim reads to run a registered hook on the element (see [events.md](events.md)); custom events a hook dispatches are bound like any other event: `(point-picked)="pick($event.detail.index)"`.
 - Event bindings render as `data-jsp-on="event:ref[:flags]"` markers when the host registers handlers. The flags are decided statically: `pd` when the handler ends in `false` or calls `$event.preventDefault()`, `sp` for `$event.stopPropagation()`. Without a live host no marker is rendered.
 
 ## Control flow

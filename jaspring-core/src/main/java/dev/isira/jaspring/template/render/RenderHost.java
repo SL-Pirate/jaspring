@@ -21,6 +21,11 @@ public interface RenderHost {
         return null;
     }
 
+    /// Whether the handler runs a browser closure (`Platform.onBrowser`), so its marker carries the `w` flag.
+    default boolean handlerUsesBrowser(dev.isira.jaspring.template.expr.Expr handler) {
+        return false;
+    }
+
     /// The `_ngcontent-*` attribute added to every element of the current component, or `null` without style scoping.
     default String contentAttribute() {
         return null;

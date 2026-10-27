@@ -16,6 +16,38 @@ The server cannot answer synchronously, so these are decided when the element re
 
 `(saved)="handle($event)"` on a component element subscribes the parent's handler to the child's `OutputEmitter`. Emitting runs the handler immediately in the parent's scope, inside the current turn.
 
+## Client hooks
+
+Some behaviour belongs in the browser: drawing on a canvas, wrapping a JavaScript widget, reading layout. Put a `data-jsp-hook="name"` attribute on the element (and, if useful, `data-jsp-hook-params` with JSON, for example `[attr.data-jsp-hook-params]="points() | json"`) and register the hook in a page script:
+
+```js
+jaspring.hooks.register('sparkline', {
+  mounted(el, ctx) { draw(el, ctx.params); el.onclick = e => ctx.pushEvent('point-picked', { index: 2 }); },
+  updated(el, ctx) { draw(el, ctx.params); },
+  destroyed(el) { },
+  size(el) { return { width: el.width, height: el.height }; }
+});
+```
+
+The shim calls `mounted` when a hooked element is in the document (at load, after a patch adds it, or when the hook is registered later), `updated` after a patch morphs the element's view (`ctx.params` is re-read first), and `destroyed` when the element leaves the document. Every method receives `(el, ctx, ...args)`; `ctx` has `page`, `el`, `name`, `params` and `pushEvent(type, detail)`.
+
+`pushEvent` dispatches a bubbling `CustomEvent`, so the component receives it through an ordinary binding: `<canvas data-jsp-hook="sparkline" (point-picked)="pick($event.detail.index)">`. Nothing on the server knows about hooks; only the element attribute and the event binding exist in the template. Hook-managed DOM inside the element is morphed like everything else, so keep client state in the hook object or in the browser, not in the markup.
+
+## Calling the browser
+
+A component can ask the browser for a value from inside a turn (a constructor, lifecycle hook, event handler or fork continuation):
+
+```java
+Browser.current().call("sparkline.size").thenAccept(size -> status.set("canvas " + size));
+Browser.current().call("viewport").whenComplete((value, error) -> ...);
+```
+
+`hook.method` runs that method of the hook mounted inside the component's host element; a bare name runs a function registered with `jaspring.calls.register('viewport', () => ({ width: innerWidth }))`. Functions may return a promise. The returned `ZoneTask` completes inside a page turn with the JSON value the client returned (maps, lists, strings, numbers, booleans or null), so continuations may write signals and the resulting patches go out as usual. The page is unstable until the answer arrives, so the HTTP transport keeps polling; a call made while the page is first rendered travels with the document and does not delay it. A client error, an unregistered target or 30 seconds without an answer fail the task with `BrowserCallException`; destroying the page cancels open calls. With `jaspring.live.transport=off` every call fails at once.
+
+## Browser closures
+
+`Platform.onBrowser(client -> ...)` runs a Java lambda in the browser, compiled to WebAssembly at build time, and completes like a call. See [browser.md](browser.md).
+
 ## Transports
 
-`jaspring.live.transport=websocket` (default) opens one socket per page and pushes patches from forked work as they finish; if the socket cannot connect the shim falls back to HTTP. `http` posts each event and polls while work is pending. `off` renders plain pages: handlers are still compiled and validated, but no markers, shim or live page exist.
+`jaspring.live.transport=websocket` (default) opens one socket per page and pushes patches from forked work as they finish; if the socket cannot connect the shim falls back to HTTP. `http` posts each event and polls while work is pending, including while a browser call is open. `off` renders plain pages: handlers are still compiled and validated, but no markers, shim or live page exist.

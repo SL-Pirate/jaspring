@@ -1,0 +1,12 @@
+{
+  "name": "jaspring-shim-tests",
+  "private": true,
+  "type": "module",
+  "description": "Unit tests for the client shim jaspring.js, run with Node's test runner against a jsdom document.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "27.0.0"
+  }
+}

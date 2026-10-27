@@ -1,0 +1,10 @@
+<h2 class="mb-2 text-xl font-semibold">Sparkline (client hook)</h2>
+<canvas width="240" height="60" class="block cursor-pointer rounded bg-gray-100"
+        data-jsp-hook="sparkline" [attr.data-jsp-hook-params]="points() | json"
+        (point-picked)="pick($event.detail.index)"></canvas>
+<p class="mt-2 text-sm text-gray-600">{{ picked() }}</p>
+<div class="mt-2 flex gap-2">
+  <button class="rounded bg-gray-900 px-3 py-1 text-sm text-white" (click)="addPoint()">Add point</button>
+  <button class="rounded border border-gray-300 px-3 py-1 text-sm" (click)="measure()">Measure</button>
+</div>
+<p class="mt-2 text-sm text-gray-600">{{ status() }}</p>

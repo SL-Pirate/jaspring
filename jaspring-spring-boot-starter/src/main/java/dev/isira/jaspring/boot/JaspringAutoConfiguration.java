@@ -137,10 +137,18 @@ public class JaspringAutoConfiguration {
         return new ProtocolCodec();
     }
 
+    /// The WebAssembly build of the application's browser closures, or `EMPTY` when the Gradle plugin did not produce one.
+    @Bean
+    @ConditionalOnMissingBean
+    public dev.isira.jaspring.browser.ClosureManifest closureManifest(org.springframework.core.io.ResourceLoader resourceLoader) {
+        return dev.isira.jaspring.boot.browser.ClosureManifestLoader.load(resourceLoader);
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public JaspringRuntime jaspringRuntime(ComponentRegistry registry, DomSchema schema, LivePageRegistry pages, LayoutRenderer layout,
-            JaspringProperties properties) {
-        return new JaspringRuntime(registry, schema, pages, layout, properties);
+            JaspringProperties properties, org.springframework.beans.factory.ObjectProvider<dev.isira.jaspring.boot.live.LiveSessions> sessions,
+            dev.isira.jaspring.browser.ClosureManifest closures) {
+        return new JaspringRuntime(registry, schema, pages, layout, properties, sessions.getIfAvailable(), closures);
     }
 }

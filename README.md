@@ -26,7 +26,8 @@ class HomeController {
 
 ## What is in the box
 
-- Angular's real compiler (`@angular/compiler` 21.x) runs in GraalJS at startup, so every template Angular accepts has a defined meaning here and every template Angular rejects fails startup with Angular's message. Nothing on the request path touches JavaScript.
+- Angular's real compiler (`@angular/compiler` 21.x) runs in GraalJS at startup, so every template Angular accepts has a defined meaning here and every template Angular rejects fails startup with Angular's message. The server never evaluates JavaScript on the request path.
+- Browser interop: client hooks on elements, server-to-browser calls with a result, and `Platform.onBrowser(client -> ...)`, a Java lambda compiled to WebAssembly with GraalVM Web Image that runs in the browser ([docs/browser.md](docs/browser.md)).
 - Signals (`signal`, `computed`, `effect`, `linkedSignal`, `input`, `model`, `output`) ported from Angular's reactive graph, plus zone and zoneless change detection with Default and OnPush strategies.
 - Control flow (`@if`, `@for`, `@switch`, `@defer`, `@let`), ICU, `*ngIf`/`*ngFor`/`ngSwitch`/`ngTemplateOutlet`, `ngClass`/`ngStyle`/`ngModel`, content projection, Angular's built-in pipes, custom attribute directives, emulated style encapsulation through PostCSS, and Tailwind v4 compiled on the JVM from the class names in your templates (`@apply` included).
 - Live events over a WebSocket per page with an HTTP fallback, or plain server rendering with `jaspring.live.transport=off`.
@@ -36,11 +37,13 @@ class HomeController {
 
 | module | purpose |
 |---|---|
-| `jaspring-core` | signals, zone, change detection, template pipeline, component model, live pages |
+| `jaspring-core` | signals, zone, change detection, template pipeline, component model, live pages, browser API |
+| `jaspring-browser-runtime` | the browser side of `Platform.onBrowser` closures, compiled into WebAssembly by the Gradle plugin |
 | `jaspring-spring-boot-starter` | auto-configuration, `JaspringView`, layout, transports, client shim |
-| `jaspring-gradle-plugin` | `generateComponent` task for Java classes, HTML templates and CSS |
+| `jaspring-gradle-plugin` | `generateComponent` task for Java classes, HTML templates and CSS; WebAssembly build of browser closures |
 | `jaspring-sample` | demo app: counter, todos, async users with OnPush cards, pipes |
 | `tools/js-bundle` | builds the committed Angular compiler + PostCSS bundle (framework developers only) |
+| `tools/shim-tests` | Node tests of the client shim (framework developers only) |
 | `tools/intellij-plugin` | standalone IntelliJ IDEA support for Java-backed templates |
 
 ## Use in a Spring Boot application
@@ -134,4 +137,4 @@ For IntelliJ completion, navigation and template refactoring, see [the IDE plugi
 
 ## Status
 
-Experimental. Server-side rendering with live events is working end to end; static generation, incremental regeneration and a client-side runtime (GraalWasm) are later steps.
+Experimental. Server-side rendering with live events, client hooks and browser closures compiled to WebAssembly are working end to end; static generation and incremental regeneration are later steps.

@@ -95,6 +95,31 @@ filenames and `Default` change detection. TypeScript, NgModule and standalone op
 do not apply. This generator does not create test stubs, controllers or routes,
 and does not compile Sass/Less. It does not require Node or Angular CLI.
 
+## Browser closures (WebAssembly)
+
+When the `java` plugin is applied, the plugin also compiles every `Platform.onBrowser` lambda into one WebAssembly module (see [docs/browser.md](../docs/browser.md)):
+
+| Task | What it does |
+|---|---|
+| `scanBrowserClosures` | finds `BrowserTask` lambdas in the compiled classes, prepares rewritten class copies and the generated entry point |
+| `compileBrowserDispatcher` | compiles the entry point with the GraalVM JDK against `jaspring-browser-runtime` |
+| `buildBrowserImage` | runs `native-image --tool:svm-wasm`; `processResources` ships `jaspring/wasm/jaspring-app.js`, `jaspring-app.js.wasm` and `jaspring/jaspring-browser.json` |
+
+Projects without closures skip the last two tasks. Requirements: Oracle GraalVM 25.2.x (with Web Image) and Binaryen `wasm-as` 119+ on the PATH; a missing tool fails the build with the fix in the message.
+
+```kotlin
+jaspring {
+    browser {
+        skip.set(false)                     // -Pjaspring.browser.skip=true builds without the image
+        graalvmHome.set(file("/opt/graalvm")) // default: GRAALVM_HOME, else the JDK running Gradle when it is GraalVM
+        assemblerPath.set(file("/usr/bin/wasm-as"))
+        nativeImageArgs.add("-H:+ReportImageSizeBreakdown")
+    }
+}
+```
+
+The `jaspringBrowser` configuration holds `jaspring-browser-runtime`; the plugin adds its own version by default.
+
 ## Build configuration defaults
 
 Set a default package or adjust output roots in the consuming build:

@@ -40,7 +40,15 @@ public final class ViewRenderer {
     private final TemplateRenderer renderer;
     private final boolean liveEvents;
 
+    private final dev.isira.jaspring.browser.ClosureManifest closures;
+
     public ViewRenderer(ComponentRegistry registry, DomSchema schema, boolean liveEvents) {
+        this(registry, schema, liveEvents, dev.isira.jaspring.browser.ClosureManifest.EMPTY);
+    }
+
+    /// `closures` marks handlers that run browser closures, so the shim can warm the WebAssembly runtime early.
+    public ViewRenderer(ComponentRegistry registry, DomSchema schema, boolean liveEvents, dev.isira.jaspring.browser.ClosureManifest closures) {
+        this.closures = closures;
         this.registry = registry;
         this.renderer = new TemplateRenderer(schema);
         this.liveEvents = liveEvents;
@@ -238,6 +246,12 @@ public final class ViewRenderer {
         }
 
         @Override
+        public boolean handlerUsesBrowser(dev.isira.jaspring.template.expr.Expr handler) {
+            final var methods = closures.eventMethods(view.def().type());
+            return !methods.isEmpty() && dev.isira.jaspring.template.render.HandlerFlags.calledMethods(handler).stream().anyMatch(methods::contains);
+        }
+
+        @Override
         public String contentAttribute() {
             return view.def().styles().isEmpty() ? null : "_ngcontent-" + view.def().scopeId();
         }
@@ -328,13 +342,16 @@ public final class ViewRenderer {
                     for (var current = view; current != null; current = current.parent()) {
                         current.markDirty();
                     }
-                    Signals.untracked(() -> {
-                        // A two-way binding's "handler" is the target expression itself.
-                        if (output.type() == dev.isira.jaspring.template.ast.EventType.TWO_WAY) {
-                            ExpressionEvaluator.assignTo(output.handler(), value, context);
-                        } else {
-                            ExpressionEvaluator.evaluate(output.handler(), context);
-                        }
+                    ComponentView.runAs(view, () -> {
+                        Signals.untracked(() -> {
+                            // A two-way binding's "handler" is the target expression itself.
+                            if (output.type() == dev.isira.jaspring.template.ast.EventType.TWO_WAY) {
+                                ExpressionEvaluator.assignTo(output.handler(), value, context);
+                            } else {
+                                ExpressionEvaluator.evaluate(output.handler(), context);
+                            }
+                        });
+                        return null;
                     });
                 }));
             }

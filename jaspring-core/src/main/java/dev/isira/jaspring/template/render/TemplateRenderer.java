@@ -268,7 +268,8 @@ public final class TemplateRenderer {
                         continue;
                     }
                     final var target = output.target() == null ? "" : output.target() + ":";
-                    eventMarkers.add(target + output.name() + ":" + ref + HandlerFlags.analyze(output.handler()).suffix());
+                    eventMarkers.add(target + output.name() + ":" + ref
+                            + HandlerFlags.analyze(output.handler(), host.handlerUsesBrowser(output.handler())).suffix());
                 }
 
                 out.openTag(tagName);

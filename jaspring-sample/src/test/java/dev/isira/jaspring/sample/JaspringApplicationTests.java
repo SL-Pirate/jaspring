@@ -23,6 +23,11 @@ class JaspringApplicationTests {
 
         assertTrue(html.contains(">Jaspring sample</h1>"), html);
         assertTrue(html.contains("<app-counter"), html);
+        assertTrue(html.contains("data-jsp-hook=\"sparkline\""), html);
+        assertTrue(html.contains("data-jsp-hook-params=\"[\n  3,"), "the json pipe pretty-prints the points: " + html.substring(0, 200));
+        assertTrue(html.contains("data-jsp-on=\"point-picked:"), html);
+        assertTrue(html.contains("<app-browser"), html);
+        assertTrue(html.contains("Theme from localStorage"), html);
         assertTrue(html.contains("Todos (1 left)"), html);
         assertTrue(html.contains("Loading users"), html);
         assertTrue(html.contains("currency: €1,234.57"), html);

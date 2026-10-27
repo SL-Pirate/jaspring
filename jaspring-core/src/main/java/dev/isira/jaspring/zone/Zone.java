@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -64,6 +65,27 @@ public final class Zone {
         return pending;
     }
 
+    /// A future delivered inside page turns, for work that something other than a forked thread completes
+    /// (a browser reply, a timer). Pair it with `pendingWork` to keep the page unstable meanwhile.
+    public <T> ZoneTask<T> task() {
+        return new ZoneTask<>(turnExecutor());
+    }
+
+    /// Registers pending work that `fork` does not know about and returns its release callback. The page stays
+    /// unstable until the callback runs. Call it under the page lock.
+    public Runnable pendingWork() {
+        final var done = pending.add();
+        markUnstable();
+        return done;
+    }
+
+    private Executor turnExecutor() {
+        return command -> turns.runTurn(() -> {
+            command.run();
+            return null;
+        });
+    }
+
     public <T> T run(Supplier<T> body) {
         enter();
         try {
@@ -102,10 +124,7 @@ public final class Zone {
     /// Runs `work` on a virtual thread outside the zone. The result is delivered as a turn, so continuations
     /// may write signals and trigger change detection. The page is not stable until it completes.
     public <T> ZoneTask<T> fork(Callable<T> work) {
-        final var task = new ZoneTask<T>(command -> turns.runTurn(() -> {
-            command.run();
-            return null;
-        }));
+        final var task = new ZoneTask<T>(turnExecutor());
         final var done = pending.add();
         markUnstable();
         Thread.ofVirtual().name("jaspring-fork").start(() -> {

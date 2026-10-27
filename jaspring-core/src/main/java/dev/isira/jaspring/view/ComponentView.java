@@ -57,7 +57,8 @@ public final class ComponentView {
         return CURRENT.get();
     }
 
-    static <T> T runAs(ComponentView view, java.util.function.Supplier<T> body) {
+    /// Runs `body` with `view` as the current view, so `ChangeDetectorRef.current()` and `Browser.current()` resolve.
+    public static <T> T runAs(ComponentView view, java.util.function.Supplier<T> body) {
         return CURRENT.runWith(view, body);
     }
 

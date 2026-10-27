@@ -34,11 +34,11 @@ def published_version(directory, version):
 
 
 def verify(repository, version, require_signatures):
-    artifacts = {"jaspring-core", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
+    artifacts = {"jaspring-core", "jaspring-browser-runtime", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
     group = repository / "dev/isira"
     require(group.is_dir(), f"Missing repository group: {group}")
     require({path.name for path in group.iterdir() if path.is_dir()} == artifacts | {"jaspring"},
-            "Only core, the Spring Boot starter, Gradle plugin and its marker group should be published")
+            "Only core, the browser runtime, the Spring Boot starter, Gradle plugin and its marker group should be published")
     if version is None:
         version = ET.parse(group / "jaspring-core/maven-metadata.xml").findtext("versioning/latest")
         require(version, "No latest core version in repository metadata")
@@ -75,6 +75,12 @@ def verify(repository, version, require_signatures):
             require("spring-boot-starter-websocket" not in dependencies, "WebSocket support must remain optional")
         elif artifact == "jaspring-core":
             require("polyglot" in dependencies and "js-community" in dependencies, "Missing GraalJS dependencies")
+        elif artifact == "jaspring-browser-runtime":
+            core = dependencies.get("jaspring-core")
+            require(core is not None and core.findtext("m:version", namespaces=ns) == version,
+                    "The browser runtime must depend on the matching core version")
+            require(set(dependencies) == {"jaspring-core"},
+                    "The browser runtime depends on core only; the Web Image API is a GraalVM JDK module")
         else:
             require(not dependencies, "The Gradle plugin must not depend on Jaspring's runtime or test libraries")
 
@@ -91,6 +97,7 @@ def verify(repository, version, require_signatures):
                     require(any(name.endswith(".class") for name in jar.namelist()), f"Empty binary jar: {artifact}")
                     resource = {
                         "jaspring-core": "META-INF/jaspring/THIRD-PARTY-LICENSES.txt",
+                        "jaspring-browser-runtime": "dev/isira/jaspring/browser/runtime/WebClient.class",
                         "jaspring-spring-boot-starter": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
                         "jaspring-gradle-plugin": "META-INF/gradle-plugins/dev.isira.jaspring.properties",
                     }[artifact]

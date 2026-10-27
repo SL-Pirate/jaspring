@@ -65,6 +65,8 @@ public class BrowserComponent implements OnInit {
     }
 
     private static String explain(Throwable error) {
-        return error instanceof BrowserClosuresUnavailableException ? "WebAssembly build not available: " + error.getMessage() : "error: " + error.getMessage();
+        // Futures hand continuations the CompletionException; the browser's reason is its cause.
+        final var cause = error instanceof java.util.concurrent.CompletionException && error.getCause() != null ? error.getCause() : error;
+        return cause instanceof BrowserClosuresUnavailableException ? "WebAssembly build not available: " + cause.getMessage() : "error: " + cause.getMessage();
     }
 }

@@ -25,7 +25,10 @@
       tag.onload = function () {
         var vm = window.JaspringWasm;
         if (!vm || typeof vm.run !== 'function') { reject(new Error('The WebAssembly launcher did not define JaspringWasm')); return; }
-        Promise.resolve(vm.run([], { wasm_path: moduleUrl })).then(function () {
+        // GraalVM.run(args, config): a Config instance carries the module path and the launcher's other defaults.
+        var config = typeof vm.Config === 'function' ? new vm.Config() : {};
+        config.wasm_path = moduleUrl;
+        Promise.resolve(vm.run([], config)).then(function () {
           if (!window.jaspringWasm || typeof window.jaspringWasm.run !== 'function') {
             reject(new Error('The WebAssembly module did not install its dispatcher'));
             return;

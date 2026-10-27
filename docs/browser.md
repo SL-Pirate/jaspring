@@ -47,7 +47,7 @@ The Jaspring Gradle plugin compiles closures when the `java` plugin is applied:
 2. `compileBrowserDispatcher` compiles the generated entry point against `jaspring-browser-runtime`.
 3. `buildBrowserImage` runs `native-image --tool:svm-wasm` and writes `jaspring-app.js`, `jaspring-app.js.wasm` and `jaspring/jaspring-browser.json` into the application's resources.
 
-Requirements: Oracle GraalVM 25.2.x (Web Image is part of Oracle GraalVM, not GraalVM Community) and Binaryen's `wasm-as` 119 or later on the PATH (Fedora: `dnf install binaryen`; macOS: `brew install binaryen`; Ubuntu 24.04 packages an older version, use a [release](https://github.com/WebAssembly/binaryen/releases)). Settings: `jaspring { browser { skip; graalvmHome; assemblerPath; nativeImageArgs } }`, or the Gradle properties `jaspring.browser.skip`, `jaspring.browser.graalvmHome`, `jaspring.browser.assemblerPath`.
+Requirements: Oracle GraalVM 25.2.x (Web Image is part of Oracle GraalVM, not GraalVM Community) and Binaryen's `wasm-as` 119 or later on the PATH (Fedora: `dnf install binaryen`; macOS: `brew install binaryen`; Ubuntu 24.04 packages an older version, use a [release](https://github.com/WebAssembly/binaryen/releases)). Settings: `jaspring { browser { skip; graalvmHome; assemblerPath; nativeImageArgs; imageClasspath } }`, or the Gradle properties `jaspring.browser.skip`, `jaspring.browser.graalvmHome`, `jaspring.browser.assemblerPath`. The image compiles the application's classes, Jaspring's jars and the browser runtime; a closure that calls into another library needs that jar on `imageClasspath` (library jars are excluded by default because their Native Image metadata, Spring's and Truffle's in particular, does not apply to the WebAssembly backend).
 
 Without the toolchain the build fails with a message naming what to install; `-Pjaspring.browser.skip=true` builds without the image, and `Platform.onBrowser` then throws `BrowserClosuresUnavailableException` with the same explanation. The manifest records a digest of every class a closure was compiled from, so a class recompiled by an IDE or devtools without the image fails with "stale build" instead of running the wrong code. The application needs `jaspring-browser-runtime` on the `jaspringBrowser` configuration; the plugin adds its own version by default.
 
@@ -67,7 +67,17 @@ A call issued while the page is first rendered travels with the document and nev
 
 ### Measured
 
-Fill in from the spike before relying on the numbers: build time and memory of `native-image --tool:svm-wasm`, `jaspring-app.js.wasm` raw and gzip size, launcher size, time to the runtime being ready in Chromium and Firefox.
+A spike with one `@JS` DOM call, one promise and a dispatcher installed on `globalThis` (Oracle GraalVM 25.2.4, Binaryen 126, Fedora, 8 cores):
+
+| metric | value |
+|---|---|
+| `native-image --tool:svm-wasm` wall time | 25 s |
+| build peak memory | 0.9 GB |
+| module (`.js.wasm`) | 1.34 MB raw, 487 KB gzip |
+| launcher (`.js`) | 109 KB |
+| `GraalVM.run` until the dispatcher is installed (Node 24, module from a local HTTP server) | 260-290 ms |
+
+Node 24 runs the module without `--experimental-wasm-exnref`. The module size is dominated by the Java runtime, so an application with a dozen closures costs about the same as one. Browser numbers are read from the sample with DevTools open.
 
 ## Trying it in the sample
 

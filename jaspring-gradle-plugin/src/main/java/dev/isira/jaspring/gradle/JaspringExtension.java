@@ -32,5 +32,10 @@ public abstract class JaspringExtension {
 
         /// Extra `native-image` arguments, for example `-H:+ReportImageSizeBreakdown`.
         public abstract ListProperty<String> getNativeImageArgs();
+
+        /// Extra jars the closures call into. By default only the application's classes, Jaspring's own jars and
+        /// the browser runtime are compiled: library jars (Spring, GraalJS, Truffle) carry Native Image metadata
+        /// that the WebAssembly backend cannot honour, and closures cannot use them in the browser anyway.
+        public abstract org.gradle.api.file.ConfigurableFileCollection getImageClasspath();
     }
 }

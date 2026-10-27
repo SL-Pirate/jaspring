@@ -114,6 +114,7 @@ jaspring {
         graalvmHome.set(file("/opt/graalvm")) // default: GRAALVM_HOME, else the JDK running Gradle when it is GraalVM
         assemblerPath.set(file("/usr/bin/wasm-as"))
         nativeImageArgs.add("-H:+ReportImageSizeBreakdown")
+        imageClasspath.from(configurations.runtimeClasspath.get().filter { it.name.startsWith("commons-text") })
     }
 }
 ```

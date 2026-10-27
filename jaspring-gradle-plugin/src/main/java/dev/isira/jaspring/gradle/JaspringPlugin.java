@@ -96,7 +96,11 @@ public final class JaspringPlugin implements Plugin<Project> {
             task.getDispatcherClasses().from(compile.map(JavaCompile::getDestinationDirectory));
             task.getRewrittenClasses().from(scan.flatMap(ScanBrowserClosures::getRewrittenClassesDir));
             // Not the runtime classpath: that depends on `classes`, which depends on processResources, which waits for this task.
-            task.getImageClasspath().from(runtime, main.getCompileClasspath(), main.getOutput().getClassesDirs());
+            // Only the application's classes, sibling projects (directories), Jaspring's jars and the browser runtime
+            // are compiled; other library jars bring Native Image metadata the WebAssembly backend cannot honour.
+            task.getImageClasspath().from(main.getOutput().getClassesDirs(),
+                    project.files(runtime, main.getCompileClasspath()).filter(file -> file.isDirectory() || file.getName().startsWith("jaspring-")),
+                    browser.getImageClasspath());
             task.getClosuresFile().set(scan.flatMap(ScanBrowserClosures::getClosuresFile));
             task.getClassesDirs().from(main.getOutput().getClassesDirs());
             task.getAnalysisClasspath().from(main.getCompileClasspath());

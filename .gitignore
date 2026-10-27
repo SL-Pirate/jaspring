@@ -38,3 +38,7 @@ out/
 
 ### Node (framework tooling only) ###
 node_modules/
+
+### Python ###
+__pycache__/
+*.pyc

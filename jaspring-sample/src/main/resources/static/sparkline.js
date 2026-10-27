@@ -5,7 +5,7 @@ jaspring.hooks.register('sparkline', {
     this.draw(el, ctx.params);
     el.addEventListener('click', (event) => {
       const points = ctx.params;
-      const index = Math.min(points.length - 1, Math.floor(event.offsetX / (el.width / points.length)));
+      const index = Math.max(0, Math.min(points.length - 1, Math.floor(event.offsetX / (el.width / points.length))));
       ctx.pushEvent('point-picked', { index });
     });
   },

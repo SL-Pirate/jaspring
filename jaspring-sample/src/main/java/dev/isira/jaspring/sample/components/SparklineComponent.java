@@ -37,8 +37,12 @@ public class SparklineComponent {
         final var browser = Browser.current();
         status.set("measuring...");
         browser.call("sparkline.size").whenComplete((size, error) ->
-                status.set(error == null ? "canvas " + size : "canvas: " + error.getMessage()));
+                status.set(error == null ? "canvas " + size : "canvas: " + reason(error)));
         browser.call("viewport").whenComplete((viewport, error) ->
-                status.set(status.get() + (error == null ? ", viewport " + viewport : ", viewport: " + error.getMessage())));
+                status.set(status.get() + (error == null ? ", viewport " + viewport : ", viewport: " + reason(error))));
+    }
+
+    private static String reason(Throwable error) {
+        return error instanceof java.util.concurrent.CompletionException && error.getCause() != null ? error.getCause().getMessage() : error.getMessage();
     }
 }

@@ -72,18 +72,18 @@ folder names become lowercase package segments without hyphens (`user-card` →
 In multi-project builds, apply the plugin to each application module and use a
 qualified task such as `:app:generateComponent` to target one module.
 
-| Option | Default | Meaning |
-|---|---|---|
-| `--name` | required | Kebab-case or Java class name, optionally with parent folders |
-| `--package` | required | Base Java package, preferably under the application's scan package |
-| `--flat` | false | Omit the component subpackage |
-| `--prefix` | `app` | Selector prefix; an empty value omits the prefix |
-| `--selector` | derived | Explicit element selector, overriding the prefix |
-| `--inline-template` | false | Put HTML in `@Component.template` instead of a file |
-| `--inline-style` | false | Put CSS in `@Component.styles` instead of a file |
-| `--style` | `css` | `css` or `none`; `none` omits styles, including inline styles |
-| `--display-block` | false | Add `:host { display: block; }` to CSS |
-| `--change-detection` | `Default` | `Default` or `OnPush` |
+| Option               | Default   | Meaning                                                            |
+| -------------------- | --------- | ------------------------------------------------------------------ |
+| `--name`             | required  | Kebab-case or Java class name, optionally with parent folders      |
+| `--package`          | required  | Base Java package, preferably under the application's scan package |
+| `--flat`             | false     | Omit the component subpackage                                      |
+| `--prefix`           | `app`     | Selector prefix; an empty value omits the prefix                   |
+| `--selector`         | derived   | Explicit element selector, overriding the prefix                   |
+| `--inline-template`  | false     | Put HTML in `@Component.template` instead of a file                |
+| `--inline-style`     | false     | Put CSS in `@Component.styles` instead of a file                   |
+| `--style`            | `css`     | `css` or `none`; `none` omits styles, including inline styles      |
+| `--display-block`    | false     | Add `:host { display: block; }` to CSS                             |
+| `--change-detection` | `Default` | `Default` or `OnPush`                                              |
 
 Boolean options use flags (`--flat`, `--inline-template`); Gradle also provides
 their `--no-...` forms. List task options with `./gradlew help --task generateComponent`.
@@ -99,11 +99,11 @@ and does not compile Sass/Less. It does not require Node or Angular CLI.
 
 When the `java` plugin is applied, the plugin also compiles every `Platform.onBrowser` lambda into one WebAssembly module (see [docs/browser.md](../docs/browser.md)):
 
-| Task | What it does |
-|---|---|
-| `scanBrowserClosures` | finds `BrowserTask` lambdas in the compiled classes, prepares rewritten class copies and the generated entry point |
-| `compileBrowserDispatcher` | compiles the entry point with the GraalVM JDK against `jaspring-browser-runtime` |
-| `buildBrowserImage` | runs `native-image --tool:svm-wasm`; `processResources` ships `jaspring/wasm/jaspring-app.js`, `jaspring-app.js.wasm` and `jaspring/jaspring-browser.json` |
+| Task                       | What it does                                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scanBrowserClosures`      | finds `BrowserTask` lambdas in the compiled classes, prepares rewritten class copies and the generated entry point                                         |
+| `compileBrowserDispatcher` | compiles the entry point with the GraalVM JDK against `jaspring-browser-runtime`                                                                           |
+| `buildBrowserImage`        | runs `native-image --tool:svm-wasm`; `processResources` ships `jaspring/wasm/jaspring-app.js`, `jaspring-app.js.wasm` and `jaspring/jaspring-browser.json` |
 
 Projects without closures skip the last two tasks. Requirements: Oracle GraalVM 25.2.x (with Web Image) and Binaryen `wasm-as` 119+ on the PATH; a missing tool fails the build with the fix in the message.
 
@@ -120,6 +120,29 @@ jaspring {
 ```
 
 The `jaspringBrowser` configuration holds `jaspring-browser-runtime`; the plugin adds its own version by default.
+
+## TypeScript
+
+When the `java` plugin is applied, the plugin also compiles `src/main/typescript` (see [docs/typescript.md](../docs/typescript.md)):
+
+| Task                     | What it does                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `extractTypescriptTypes` | writes `jaspring.d.ts` and `tsconfig.base.json` to `build/jaspring/typescript/types/` for the editor                                         |
+| `compileTypescript`      | type-checks and compiles every `.ts` to an ES module; `processResources` ships `jaspring/ts/**/*.js` and `jaspring/jaspring-typescript.json` |
+
+Projects without `src/main/typescript` skip both tasks. The compiler is `dev.isira:jaspring-typescript` on the `jaspringTypescript` configuration (the plugin adds its own version); it bundles TypeScript 6.0.3 and runs in GraalJS inside a Gradle worker, so nothing needs installing. Type errors fail the build in `tsc`'s format. `host = NODE` runs the same bundle in Node 20+ for speed with identical output.
+
+```kotlin
+jaspring {
+    typescript {
+        sourceDir.set(layout.projectDirectory.dir("src/main/typescript"))
+        typeCheck.set(true)   // -Pjaspring.typescript.typeCheck=false transpiles without type checking
+        host.set(dev.isira.jaspring.gradle.JaspringExtension.Typescript.Host.GRAALJS) // -Pjaspring.typescript.host=node
+        nodePath.set(file("/usr/local/bin/node")) // -Pjaspring.typescript.nodePath; default: the first Node 20+ on the PATH
+        skip.set(false)        // -Pjaspring.typescript.skip=true
+    }
+}
+```
 
 ## Build configuration defaults
 
@@ -157,4 +180,6 @@ publication.
 ```
 
 TestKit tests run isolated consumer builds, compile generated Java against Jaspring,
-and cover configuration caching, options, file conflicts and invalid input.
+and cover configuration caching, options, file conflicts and invalid input. The TypeScript
+tests compile a consumer's `src/main/typescript` with the compiler jars from this build; the
+Node host test runs when Node is on the PATH.

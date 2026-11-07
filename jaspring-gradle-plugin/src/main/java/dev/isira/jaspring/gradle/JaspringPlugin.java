@@ -17,12 +17,14 @@ import org.gradle.language.jvm.tasks.ProcessResources;
 
 import dev.isira.jaspring.gradle.browser.GraalvmLocator;
 
-/// Scaffolding tasks, plus the WebAssembly build of `Platform.onBrowser` closures for projects that apply the
-/// `java` plugin: scan the compiled classes, compile the generated dispatcher with the GraalVM JDK, build the image
-/// with Web Image, and ship launcher, module and manifest as resources.
+/// Scaffolding tasks, plus two builds for projects that apply the `java` plugin: the WebAssembly build of
+/// `Platform.onBrowser` closures (scan the compiled classes, compile the generated dispatcher with the GraalVM JDK,
+/// build the image with Web Image) and the TypeScript build of `src/main/typescript`. Both ship their outputs and a
+/// manifest as resources.
 public final class JaspringPlugin implements Plugin<Project> {
 
     public static final String BROWSER_CONFIGURATION = "jaspringBrowser";
+    public static final String TYPESCRIPT_CONFIGURATION = "jaspringTypescript";
 
     @Override
     public void apply(Project project) {
@@ -32,11 +34,14 @@ public final class JaspringPlugin implements Plugin<Project> {
             task.getJavaDirectory().convention(project.getLayout().getProjectDirectory().dir("src/main/java"));
             task.getResourcesDirectory().convention(project.getLayout().getProjectDirectory().dir("src/main/resources"));
         });
-        project.getPlugins().withType(JavaPlugin.class, plugin -> browserBuild(project));
+        project.getPlugins().withType(JavaPlugin.class, plugin -> {
+            final var extension = project.getExtensions().create("jaspring", JaspringExtension.class);
+            browserBuild(project, extension);
+            typescriptBuild(project, extension);
+        });
     }
 
-    private static void browserBuild(Project project) {
-        final var extension = project.getExtensions().create("jaspring", JaspringExtension.class);
+    private static void browserBuild(Project project, JaspringExtension extension) {
         final var browser = extension.getBrowser();
         final var providers = project.getProviders();
         browser.getSkip().convention(providers.gradleProperty("jaspring.browser.skip").map(Boolean::parseBoolean).orElse(false));
@@ -119,6 +124,67 @@ public final class JaspringPlugin implements Plugin<Project> {
             task.dependsOn(image);
             task.from(image.map(BuildBrowserImage::getOutputDir), spec -> spec.into("jaspring/wasm"));
             task.from(image.map(BuildBrowserImage::getManifestDir), spec -> spec.into("jaspring"));
+        });
+    }
+
+    private static void typescriptBuild(Project project, JaspringExtension extension) {
+        final var typescript = extension.getTypescript();
+        final var providers = project.getProviders();
+        final var projectDir = project.getLayout().getProjectDirectory();
+        typescript.getSourceDir().convention(projectDir.dir("src/main/typescript"));
+        typescript.getTypeCheck().convention(providers.gradleProperty("jaspring.typescript.typeCheck").map(Boolean::parseBoolean).orElse(true));
+        typescript.getHost().convention(providers.gradleProperty("jaspring.typescript.host")
+                .map(value -> JaspringExtension.Typescript.Host.valueOf(value.toUpperCase(java.util.Locale.ROOT)))
+                .orElse(JaspringExtension.Typescript.Host.GRAALJS));
+        typescript.getNodePath().convention(providers.gradleProperty("jaspring.typescript.nodePath").map(projectDir::file));
+        typescript.getSkip().convention(providers.gradleProperty("jaspring.typescript.skip").map(Boolean::parseBoolean).orElse(false));
+
+        final var compiler = project.getConfigurations().create(TYPESCRIPT_CONFIGURATION, configuration -> {
+            configuration.setDescription("The jaspring-typescript compiler (the bundled TypeScript compiler on GraalJS or Node) and its runtime.");
+            configuration.setCanBeConsumed(false);
+            configuration.setCanBeResolved(true);
+            pluginVersion().ifPresent(version -> configuration.defaultDependencies(dependencies ->
+                    dependencies.add(project.getDependencies().create("dev.isira:jaspring-typescript:" + version))));
+        });
+
+        final var buildDir = project.getLayout().getBuildDirectory().dir("jaspring/typescript");
+        final var typesDir = buildDir.map(dir -> dir.dir("types"));
+        // Explicit only: a project without TypeScript must never resolve the compiler, so nothing depends on this task.
+        project.getTasks().register("extractTypescriptTypes", ExtractTypescriptTypes.class, task -> {
+            task.setGroup("jaspring");
+            task.setDescription("Extracts jaspring.d.ts and tsconfig.base.json from the compiler for editors, before the first .ts file exists.");
+            task.getCompilerClasspath().from(compiler);
+            task.getTypesDir().convention(typesDir);
+        });
+
+        // Only the .ts tree and an external configuration are inputs: nothing from `classes`, which waits for processResources.
+        final var compile = project.getTasks().register("compileTypescript", CompileTypescript.class, task -> {
+            task.setGroup("jaspring");
+            task.setDescription("Compiles src/main/typescript to ES modules served under /_jaspring/ts/.");
+            task.getTypesDir().convention(typesDir);
+            task.getSourceDir().set(typescript.getSourceDir());
+            task.getSources().from(typescript.getSourceDir().map(dir -> dir.getAsFileTree().matching(pattern -> pattern.include("**/*.ts"))));
+            task.getSourcePathPrefix().set(typescript.getSourceDir().map(dir ->
+                    projectDir.getAsFile().toPath().relativize(dir.getAsFile().toPath()).toString().replace(java.io.File.separatorChar, '/') + "/"));
+            task.getCompilerClasspath().from(compiler);
+            task.getTypeCheck().set(typescript.getTypeCheck());
+            task.getHost().set(typescript.getHost());
+            task.getNodePath().set(typescript.getNodePath().map(file -> file.getAsFile().getAbsolutePath()));
+            task.getGraalvmHome().set(extension.getBrowser().getGraalvmHome().map(dir -> dir.getAsFile().getAbsolutePath()));
+            task.getOutputDir().convention(buildDir.map(dir -> dir.dir("js")));
+            task.getManifestDir().convention(buildDir.map(dir -> dir.dir("manifest")));
+            task.onlyIf("the TypeScript build is not skipped", t -> {
+                if (!typescript.getSkip().get()) return true;
+                t.getLogger().warn("{}: jaspring.typescript.skip is set; the page scripts in {} are not compiled", t.getPath(),
+                        typescript.getSourceDir().get().getAsFile());
+                return false;
+            });
+        });
+
+        project.getTasks().named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources.class, task -> {
+            task.dependsOn(compile);
+            task.from(compile.map(CompileTypescript::getOutputDir), spec -> spec.into("jaspring/ts"));
+            task.from(compile.map(CompileTypescript::getManifestDir), spec -> spec.into("jaspring"));
         });
     }
 

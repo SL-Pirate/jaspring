@@ -30,6 +30,7 @@ class OffTransportTest {
         assertFalse(html.contains("data-jsp-on"), html);
         assertFalse(html.contains("jaspring.js"), html);
         assertFalse(html.contains("jaspring-wasm.js"), html);
+        assertFalse(html.contains("/_jaspring/ts/"), html);
         assertFalse(html.contains("rel=\"preload\""), html);
         assertEquals(0, pages.size());
     }

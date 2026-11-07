@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.regex.Pattern;
@@ -41,8 +42,14 @@ class JaspringViewMockMvcTest {
         assertTrue(html.contains("span[_ngcontent-jsp-c"), html);
         assertTrue(Pattern.compile("data-jsp-page=\"[A-Za-z0-9_-]{22}\" data-jsp-transport=\"websocket\"").matcher(html).find(), html);
         assertEquals("text/html;charset=UTF-8", result.getResponse().getContentType());
+        // The compiled TypeScript entry points come after the shim and carry the source digest.
+        final var moduleTag = html.indexOf("<script type=\"module\" src=\"/_jaspring/ts/hello.js?v=");
+        assertTrue(moduleTag > html.indexOf("/_jaspring/jaspring.js"), html);
 
         mockMvc.perform(get("/_jaspring/jaspring.js")).andExpect(status().isOk());
+        final var js = mockMvc.perform(get("/_jaspring/ts/hello.js")).andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "max-age=3600")).andReturn().getResponse().getContentAsString();
+        assertTrue(js.startsWith("/* prebuilt */"), js);
     }
 
     @Test

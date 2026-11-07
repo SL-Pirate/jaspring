@@ -8,20 +8,27 @@ import java.util.regex.Pattern;
 import org.springframework.core.io.Resource;
 
 import dev.isira.jaspring.boot.browser.BrowserAssets;
+import dev.isira.jaspring.boot.typescript.TypescriptScripts;
 
-/// Places the rendered root component into the layout document and injects component styles and the client shim.
-/// The layout must contain the root component's element (`<app-root></app-root>`); without it the root is
-/// appended to the body.
+/// Places the rendered root component into the layout document and injects component styles, the client shim and
+/// the application's compiled TypeScript entry points. The layout must contain the root component's element
+/// (`<app-root></app-root>`); without it the root is appended to the body.
 public final class LayoutRenderer {
 
     private final String layout;
     private final ComponentStyles styles;
     private final JaspringProperties.Transport transport;
+    private final TypescriptScripts scripts;
 
     public LayoutRenderer(Resource layout, ComponentStyles styles, JaspringProperties.Transport transport) {
+        this(layout, styles, transport, TypescriptScripts.NONE);
+    }
+
+    public LayoutRenderer(Resource layout, ComponentStyles styles, JaspringProperties.Transport transport, TypescriptScripts scripts) {
         this.layout = read(layout);
         this.styles = styles;
         this.transport = transport;
+        this.scripts = scripts;
     }
 
     private static String read(Resource resource) {
@@ -64,6 +71,11 @@ public final class LayoutRenderer {
             if (assets.policy() != BrowserAssets.Policy.NONE) {
                 scripts += "<script src=\"/_jaspring/jaspring-wasm.js\" data-jsp-wasm-js=\"" + assets.launcherUrl() + "\" data-jsp-wasm-bin=\""
                         + assets.moduleUrl() + "\" data-jsp-wasm-policy=\"" + assets.policy().name().toLowerCase(java.util.Locale.ROOT) + "\"></script>\n";
+            }
+            // Module scripts are deferred, so they run after the classic shim above whatever their position; they are
+            // only injected together with the shim, so a page without it never references the `jaspring` global.
+            for (final var script : this.scripts.entryPoints()) {
+                scripts += "<script type=\"module\" src=\"" + TypescriptScripts.URL_PREFIX + script.output() + "?v=" + script.sha256().substring(0, 8) + "\"></script>\n";
             }
             document = insertBefore(document, "</body>", scripts);
         }

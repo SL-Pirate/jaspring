@@ -127,8 +127,18 @@ public class JaspringAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public LayoutRenderer layoutRenderer(JaspringProperties properties, ComponentStyles styles, org.springframework.core.io.ResourceLoader resourceLoader) {
-        return new LayoutRenderer(resourceLoader.getResource(properties.getLayout()), styles, properties.getLive().getTransport());
+    public LayoutRenderer layoutRenderer(JaspringProperties properties, ComponentStyles styles, org.springframework.core.io.ResourceLoader resourceLoader,
+            dev.isira.jaspring.boot.typescript.TypescriptScripts scripts) {
+        return new LayoutRenderer(resourceLoader.getResource(properties.getLayout()), styles, properties.getLive().getTransport(), scripts);
+    }
+
+    /// The TypeScript the Gradle plugin compiled (`jaspring/jaspring-typescript.json`), or `NONE`. With
+    /// `jaspring-typescript` on the classpath, `TypescriptAutoConfiguration` provides this bean instead and
+    /// recompiles stale sources at startup.
+    @Bean
+    @ConditionalOnMissingBean
+    public dev.isira.jaspring.boot.typescript.TypescriptScripts typescriptScripts(org.springframework.core.io.ResourceLoader resourceLoader) {
+        return dev.isira.jaspring.boot.typescript.TypescriptManifestLoader.load(resourceLoader);
     }
 
     @Bean

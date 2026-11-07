@@ -14,12 +14,15 @@ dependencies {
 	implementation(libs.spring.boot.autoconfigure)
 	// WebSocket transport is optional: apps without the websocket starter fall back to HTTP.
 	compileOnly(libs.spring.boot.starter.websocket)
+	// The startup fallback that compiles src/main/typescript is optional too: apps add jaspring-typescript at runtime.
+	compileOnly(project(":jaspring-typescript"))
 	annotationProcessor(libs.spring.boot.configuration.processor)
 
 	testImplementation(libs.spring.boot.starter.test)
 	testImplementation(libs.spring.boot.starter.webmvc.test)
 	testImplementation(libs.spring.boot.starter.websocket)
 	testImplementation(libs.spring.boot.starter.websocket.test)
+	testImplementation(project(":jaspring-typescript"))
 	testRuntimeOnly(libs.junit.launcher)
 }
 

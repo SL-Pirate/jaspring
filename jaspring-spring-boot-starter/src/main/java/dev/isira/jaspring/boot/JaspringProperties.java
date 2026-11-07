@@ -37,6 +37,61 @@ public class JaspringProperties {
 
     private final Tailwind tailwind = new Tailwind();
 
+    private final Typescript typescript = new Typescript();
+
+    /// The startup fallback for `src/main/typescript`: when `jaspring-typescript` is on the classpath and the build's
+    /// manifest is missing or older than the sources, the scripts are compiled at startup and served from memory.
+    public static class Typescript {
+        public enum Host { GRAALJS, NODE }
+
+        private boolean enabled = true;
+
+        /// Off means transpile only: type errors do not fail startup.
+        private boolean typeCheck = true;
+
+        /// Where the sources are, relative to the working directory; `classpath:/typescript/` is tried when it is absent.
+        private String sourceDir = "src/main/typescript";
+
+        /// `graaljs` needs nothing installed; `node` runs the same compiler in a Node 20+ process, faster.
+        private Host host = Host.GRAALJS;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isTypeCheck() {
+            return typeCheck;
+        }
+
+        public void setTypeCheck(boolean typeCheck) {
+            this.typeCheck = typeCheck;
+        }
+
+        public String getSourceDir() {
+            return sourceDir;
+        }
+
+        public void setSourceDir(String sourceDir) {
+            this.sourceDir = sourceDir;
+        }
+
+        public Host getHost() {
+            return host;
+        }
+
+        public void setHost(Host host) {
+            this.host = host;
+        }
+    }
+
+    public Typescript getTypescript() {
+        return typescript;
+    }
+
     public static class Tailwind {
         /// A Tailwind stylesheet (`@import "tailwindcss";` plus `@theme`). Setting it turns Tailwind on: utilities for
         /// the class names in the templates are generated at startup and `@apply` works in component styles.

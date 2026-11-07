@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "typescript": "6.0.3",
+  "files": [
+    {
+      "source": "hello.ts",
+      "sha256": "c69abff157baa33add122585f3ff82ad722d207a1cb7f487df2b33fe27f960fe",
+      "output": "hello.js"
+    }
+  ]
+}

@@ -1,1 +1,2 @@
 dev.isira.jaspring.boot.JaspringAutoConfiguration
+dev.isira.jaspring.boot.typescript.TypescriptAutoConfiguration

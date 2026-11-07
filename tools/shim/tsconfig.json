@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020", "dom"],
+    "types": [],
+    "strict": true,
+    "removeComments": false,
+    "newLine": "lf",
+    "noEmitOnError": true,
+    "rootDir": "src",
+    "outDir": "../../jaspring-spring-boot-starter/src/main/resources/jaspring/static"
+  },
+  "include": ["src/**/*.ts"]
+}

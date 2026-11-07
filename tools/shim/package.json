@@ -1,12 +1,15 @@
 {
-  "name": "jaspring-shim-tests",
+  "name": "jaspring-shim",
   "private": true,
   "type": "module",
-  "description": "Unit tests for the client shim jaspring.js, run with Node's test runner against a jsdom document.",
+  "description": "The Jaspring client shim in TypeScript: builds jaspring.js and jaspring-wasm.js into the Spring Boot starter and jaspring.d.ts into jaspring-typescript, and tests the built shim against a jsdom document.",
   "scripts": {
+    "check": "tsc --noEmit -p .",
+    "build": "node build.mjs",
     "test": "node --test"
   },
   "devDependencies": {
-    "jsdom": "27.0.0"
+    "jsdom": "27.0.0",
+    "typescript": "6.0.3"
   }
 }

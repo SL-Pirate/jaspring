@@ -23,20 +23,21 @@ dependencies {
 	testRuntimeOnly(libs.junit.launcher)
 }
 
-// Unit tests for the client shim run with Node (framework developers only, like tools/js-bundle). They are skipped
-// when Node or the installed test dependencies are missing; CI installs both so they always run there.
-val shimTestsDir = rootProject.layout.projectDirectory.dir("tools/shim-tests")
+// The client shim is built and unit-tested with Node in tools/shim (framework developers only, like tools/js-bundle).
+// The tests are skipped when Node or the installed dependencies are missing; CI installs both so they always run there.
+val shimTestsDir = rootProject.layout.projectDirectory.dir("tools/shim")
 // Resolved here because the daemon launches processes with its own PATH, which may lack a user-local Node.
 val node = (System.getenv("PATH") ?: "").split(File.pathSeparator).map { File(it, "node") }.firstOrNull { it.canExecute() }
 val shimTest = tasks.register<Exec>("shimTest") {
 	group = "verification"
-	description = "Runs the Node tests of jaspring.js in tools/shim-tests."
+	description = "Runs the Node tests of the client shim in tools/shim, including the check that the committed JavaScript matches the TypeScript."
 	workingDir = shimTestsDir.asFile
 	commandLine(node?.absolutePath ?: "node", "--test")
-	inputs.files(fileTree("src/main/resources/jaspring/static"), fileTree(shimTestsDir.dir("test")), shimTestsDir.file("package.json"))
+	inputs.files(fileTree("src/main/resources/jaspring/static"), fileTree(shimTestsDir.dir("src")), fileTree(shimTestsDir.dir("test")),
+		shimTestsDir.file("package.json"), shimTestsDir.file("tsconfig.json"), shimTestsDir.file("build.mjs"))
 	val ready = node != null && shimTestsDir.dir("node_modules").asFile.isDirectory
 	onlyIf("Node and tools/shim-tests/node_modules are present") {
-		if (!ready) logger.lifecycle("shimTest skipped: install Node 24 and run `pnpm install` in tools/shim-tests")
+		if (!ready) logger.lifecycle("shimTest skipped: install Node 24 and run `pnpm install` in tools/shim")
 		ready
 	}
 }

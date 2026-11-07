@@ -2,7 +2,7 @@
 
 Jaspring renders on the server, but some work only the browser can do: draw on a canvas, read `localStorage`, ask for the user's location, wrap a JavaScript widget. There are two ways to reach it, built on the same protocol.
 
-- **Hooks and calls** are plain JavaScript. Use them for widgets, third-party libraries and pages where every kilobyte counts. See [events.md](events.md#client-hooks).
+- **Hooks and calls** are JavaScript, written in TypeScript under `src/main/typescript` ([typescript.md](typescript.md)). Use them for widgets, third-party libraries and pages where every kilobyte counts. See [events.md](events.md#client-hooks).
 - **Browser closures** are Java lambdas compiled to WebAssembly at build time with GraalVM Web Image and run in the browser. Use them for application pages where one language is worth the runtime download.
 
 ## Browser closures
@@ -69,13 +69,13 @@ A call issued while the page is first rendered travels with the document and nev
 
 A spike with one `@JS` DOM call, one promise and a dispatcher installed on `globalThis` (Oracle GraalVM 25.2.4, Binaryen 126, Fedora, 8 cores):
 
-| metric | value |
-|---|---|
-| `native-image --tool:svm-wasm` wall time | 25 s |
-| build peak memory | 0.9 GB |
-| module (`.js.wasm`) | 1.34 MB raw, 487 KB gzip |
-| launcher (`.js`) | 109 KB |
-| `GraalVM.run` until the dispatcher is installed (Node 24, module from a local HTTP server) | 260-290 ms |
+| metric                                                                                     | value                    |
+| ------------------------------------------------------------------------------------------ | ------------------------ |
+| `native-image --tool:svm-wasm` wall time                                                   | 25 s                     |
+| build peak memory                                                                          | 0.9 GB                   |
+| module (`.js.wasm`)                                                                        | 1.34 MB raw, 487 KB gzip |
+| launcher (`.js`)                                                                           | 109 KB                   |
+| `GraalVM.run` until the dispatcher is installed (Node 24, module from a local HTTP server) | 260-290 ms               |
 
 Node 24 runs the module without `--experimental-wasm-exnref`. The module size is dominated by the Java runtime, so an application with a dozen closures costs about the same as one. Browser numbers are read from the sample with DevTools open.
 
@@ -85,6 +85,6 @@ Node 24 runs the module without `--experimental-wasm-exnref`. The module size is
 ./gradlew :jaspring-sample:bootRun -Pjaspring.wasm=true
 ```
 
-1. **Sparkline hook**: the canvas draws at load; "Add point" redraws through `updated`; clicking a bar reports the index through a custom event; "Measure" shows the canvas size (hook method) and the viewport (page-level function). In DevTools the WebSocket frames show `call`, `result`, `patch`.
+1. **Sparkline hook** (`src/main/typescript/sparkline.ts`, compiled by the Gradle plugin): the canvas draws at load; "Add point" redraws through `updated`; clicking a bar reports the index through a custom event; "Measure" shows the canvas size (hook method) and the viewport (page-level function). In DevTools the WebSocket frames show `call`, `result`, `patch`.
 2. **Browser closures**: the theme from `localStorage` appears after load without delaying first paint; "Toggle theme" writes `localStorage` and toggles a class on the host; "Where am I?" asks for geolocation; "Copy position" writes the clipboard. The Network tab shows `jaspring-app.js` and `.wasm` fetched once from `/_jaspring/app/<digest>/`, served from cache on reload.
 3. Without `-Pjaspring.wasm=true` the card explains that no WebAssembly build is available.

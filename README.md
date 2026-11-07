@@ -12,8 +12,9 @@ public class CounterComponent {
 
 ```html
 <button (click)="count.set(count() + 1)">+</button>
-<span>{{ count() }}</span> doubled: {{ doubled() }}
-@if (count() > 5) { <p>That is more than five.</p> }
+<span>{{ count() }}</span> doubled: {{ doubled() }} @if (count() > 5) {
+<p>That is more than five.</p>
+}
 ```
 
 ```java
@@ -28,6 +29,7 @@ class HomeController {
 
 - Angular's real compiler (`@angular/compiler` 21.x) runs in GraalJS at startup, so every template Angular accepts has a defined meaning here and every template Angular rejects fails startup with Angular's message. The server never evaluates JavaScript on the request path.
 - Browser interop: client hooks on elements, server-to-browser calls with a result, and `Platform.onBrowser(client -> ...)`, a Java lambda compiled to WebAssembly with GraalVM Web Image that runs in the browser ([docs/browser.md](docs/browser.md)).
+- Browser scripts in TypeScript: `src/main/typescript` is type-checked and compiled by the Gradle plugin (the TypeScript compiler runs on GraalJS, no Node needed), served as ES modules and added to the page, with typings for the `jaspring` global ([docs/typescript.md](docs/typescript.md)).
 - Signals (`signal`, `computed`, `effect`, `linkedSignal`, `input`, `model`, `output`) ported from Angular's reactive graph, plus zone and zoneless change detection with Default and OnPush strategies.
 - Control flow (`@if`, `@for`, `@switch`, `@defer`, `@let`), ICU, `*ngIf`/`*ngFor`/`ngSwitch`/`ngTemplateOutlet`, `ngClass`/`ngStyle`/`ngModel`, content projection, Angular's built-in pipes, custom attribute directives, emulated style encapsulation through PostCSS, and Tailwind v4 compiled on the JVM from the class names in your templates (`@apply` included).
 - Live events over a WebSocket per page with an HTTP fallback, or plain server rendering with `jaspring.live.transport=off`.
@@ -35,16 +37,17 @@ class HomeController {
 
 ## Modules
 
-| module | purpose |
-|---|---|
-| `jaspring-core` | signals, zone, change detection, template pipeline, component model, live pages, browser API |
-| `jaspring-browser-runtime` | the browser side of `Platform.onBrowser` closures, compiled into WebAssembly by the Gradle plugin |
-| `jaspring-spring-boot-starter` | auto-configuration, `JaspringView`, layout, transports, client shim |
-| `jaspring-gradle-plugin` | `generateComponent` task for Java classes, HTML templates and CSS; WebAssembly build of browser closures |
-| `jaspring-sample` | demo app: counter, todos, async users with OnPush cards, pipes |
-| `tools/js-bundle` | builds the committed Angular compiler + PostCSS bundle (framework developers only) |
-| `tools/shim-tests` | Node tests of the client shim (framework developers only) |
-| `tools/intellij-plugin` | standalone IntelliJ IDEA support for Java-backed templates |
+| module                         | purpose                                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jaspring-core`                | signals, zone, change detection, template pipeline, component model, live pages, browser API                                                  |
+| `jaspring-browser-runtime`     | the browser side of `Platform.onBrowser` closures, compiled into WebAssembly by the Gradle plugin                                             |
+| `jaspring-typescript`          | the TypeScript compiler on GraalJS or Node, used by the Gradle plugin and the starter's startup fallback                                      |
+| `jaspring-spring-boot-starter` | auto-configuration, `JaspringView`, layout, transports, client shim                                                                           |
+| `jaspring-gradle-plugin`       | `generateComponent` task for Java classes, HTML templates and CSS; WebAssembly build of browser closures; TypeScript build of browser scripts |
+| `jaspring-sample`              | demo app: counter, todos, async users with OnPush cards, pipes                                                                                |
+| `tools/js-bundle`              | builds the committed Angular compiler + PostCSS bundle and the TypeScript compiler bundle (framework developers only)                         |
+| `tools/shim`                   | the client shim in TypeScript, its build and its Node tests (framework developers only)                                                       |
+| `tools/intellij-plugin`        | standalone IntelliJ IDEA support for Java-backed templates                                                                                    |
 
 ## Use in a Spring Boot application
 
@@ -133,7 +136,7 @@ using its configured default package (`dev.isira.jaspring.sample.components`):
 
 For IntelliJ completion, navigation and template refactoring, see [the IDE plugin](tools/intellij-plugin/README.md).
 
-`docs/architecture.md`, `docs/templates.md`, `docs/reactivity.md`, `docs/change-detection.md`, `docs/events.md`, `docs/protocol.md`, `docs/styles.md`, `docs/deviations.md`.
+`docs/architecture.md`, `docs/templates.md`, `docs/reactivity.md`, `docs/change-detection.md`, `docs/events.md`, `docs/browser.md`, `docs/typescript.md`, `docs/protocol.md`, `docs/styles.md`, `docs/deviations.md`.
 
 ## Status
 

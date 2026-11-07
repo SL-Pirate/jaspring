@@ -10,28 +10,29 @@ The server and the client shim exchange JSON messages. The same messages travel 
 - `data-jsp-hook="<name>"` (optionally `data-jsp-hook-params`, JSON) is written by the template author; the shim runs the hook registered under that name. The server never reads it.
 - `data-jsp-ignore` is also written by the template author. When both the old and the new element carry it, a patch leaves its children and attributes alone and only adds or updates its `data-*` attributes.
 - The shim script tag carries `data-jsp-page` and `data-jsp-transport`, plus `data-jsp-pending="true"` when messages already wait for the client (calls made while rendering, late patches), so the HTTP shim polls at once.
+- One `<script type="module" src="/_jaspring/ts/<name>.js?v=<digest>">` tag per compiled TypeScript entry point follows the shim tag (see [typescript.md](typescript.md)); the digest is the source file's.
 - When the application has browser closures, a second tag loads `/_jaspring/jaspring-wasm.js` with `data-jsp-wasm-js` and `data-jsp-wasm-bin` (the launcher and module under `/_jaspring/app/<digest>/`) and `data-jsp-wasm-policy` (`eager` or `idle`); eager pages also carry `<link rel="preload">` hints. See [browser.md](browser.md).
 
 ## Client to server
 
-| message | fields | meaning |
-|---|---|---|
-| `join` | `page` | after the socket opens, and after every reconnect |
-| `event` | `page`, `h` (ref), `ev` | a DOM event (`ev` is the serialized event) or an `ngModelChange` (`ev` is the new value) |
-| `result` | `page`, `id`, `value` or `error {message}` | the answer to a `call` |
-| `pong` | | answer to `ping` |
+| message  | fields                                     | meaning                                                                                  |
+| -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `join`   | `page`                                     | after the socket opens, and after every reconnect                                        |
+| `event`  | `page`, `h` (ref), `ev`                    | a DOM event (`ev` is the serialized event) or an `ngModelChange` (`ev` is the new value) |
+| `result` | `page`, `id`, `value` or `error {message}` | the answer to a `call`                                                                   |
+| `pong`   |                                            | answer to `ping`                                                                         |
 
 Serialized event: `type`, `key`, `code`, `altKey`, `ctrlKey`, `metaKey`, `shiftKey`, `clientX`, `clientY`, `button`, `target {tagName, id, name, value, checked, dataset}`, `detail` (for `CustomEvent`s), and for `submit` a `form` object built from `FormData`. Number inputs send numbers, checkboxes booleans, multi-selects arrays.
 
 ## Server to client
 
-| message | fields | meaning |
-|---|---|---|
-| `patch` | `seq`, `patches: [{v, html}]` | new outer HTML of the topmost changed views; stale `seq` values are ignored |
-| `call` | `id`, `target`, `v` (view id, for hook targets), `args` | run `target` in the browser and answer with `result`; `target` is `hook.method`, a registered function name, or `wasm` (args: closure id, host view id, captured values) for a browser closure |
-| `redirect` | `url` | navigate |
-| `error` | `code`, `message` | `unknown-page` makes the shim reload; other codes are logged |
-| `ping` | | keepalive (WebSocket only) |
+| message    | fields                                                  | meaning                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `patch`    | `seq`, `patches: [{v, html}]`                           | new outer HTML of the topmost changed views; stale `seq` values are ignored                                                                                                                    |
+| `call`     | `id`, `target`, `v` (view id, for hook targets), `args` | run `target` in the browser and answer with `result`; `target` is `hook.method`, a registered function name, or `wasm` (args: closure id, host view id, captured values) for a browser closure |
+| `redirect` | `url`                                                   | navigate                                                                                                                                                                                       |
+| `error`    | `code`, `message`                                       | `unknown-page` makes the shim reload; other codes are logged                                                                                                                                   |
+| `ping`     |                                                         | keepalive (WebSocket only)                                                                                                                                                                     |
 
 A WebSocket client message may be up to 4 MiB characters (`JaspringEventHandler.MAX_MESSAGE_CHARS`). The handler joins fragments itself, so the container's text buffer does not apply. A larger message closes the socket with 1009; the shim answers an oversized `result` with an error instead of sending it. Server messages have no limit.
 

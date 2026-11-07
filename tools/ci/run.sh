@@ -43,9 +43,11 @@ podman run --rm \
         if (( $# )); then
             ./gradlew "$@" --no-daemon --console=plain
         else
-            (cd tools/shim-tests && pnpm install --frozen-lockfile)
+            (cd tools/shim && pnpm install --frozen-lockfile)
             ./gradlew build publishAllPublicationsToBuildRepository -Pjaspring.wasm=true --no-daemon --console=plain
             python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test BuildBrowserImageTest
+            python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test CompileTypescriptTest
+            python3 tools/ci/check-no-skipped.py jaspring-typescript/build/test-results/test NodeHostTest
             python3 tools/verify-publications.py
             PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p "test_update_readme_versions.py"
         fi

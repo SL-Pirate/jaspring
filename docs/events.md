@@ -18,25 +18,37 @@ The server cannot answer synchronously, so these are decided when the element re
 
 ## Client hooks
 
-Some behaviour belongs in the browser: drawing on a canvas, wrapping a JavaScript widget, reading layout. Put a `data-jsp-hook="name"` attribute on the element (and, if useful, `data-jsp-hook-params` with JSON, for example `[attr.data-jsp-hook-params]="points() | json"`) and register the hook in a page script:
+Some behaviour belongs in the browser: drawing on a canvas, wrapping a JavaScript widget, reading layout. Put a `data-jsp-hook="name"` attribute on the element (and, if useful, `data-jsp-hook-params` with JSON, for example `[attr.data-jsp-hook-params]="points() | json"`) and register the hook in a page script. Page scripts are TypeScript files under `src/main/typescript`, compiled by the Gradle plugin and added to the page automatically (see [typescript.md](typescript.md)); plain JavaScript linked from the layout works the same way.
 
-```js
-jaspring.hooks.register('sparkline', {
-  mounted(el, ctx) { draw(el, ctx.params); el.onclick = e => ctx.pushEvent('point-picked', { index: 2 }); },
-  updated(el, ctx) { draw(el, ctx.params); },
-  destroyed(el) { },
-  size(el) { return { width: el.width, height: el.height }; }
+```ts
+jaspring.hooks.register<HTMLCanvasElement, number[]>("sparkline", {
+  mounted(el, ctx) {
+    draw(el, ctx.params);
+    el.onclick = (e) => ctx.pushEvent("point-picked", { index: 2 });
+  },
+  updated(el, ctx) {
+    draw(el, ctx.params);
+  },
+  destroyed(el) {},
+  size(el) {
+    return { width: el.width, height: el.height };
+  },
 });
 ```
 
-The shim calls `mounted` when a hooked element is in the document (at load, after a patch adds it, or when the hook is registered later), `updated` after a patch morphs the element's view (`ctx.params` is re-read first), and `destroyed` when the element leaves the document. Every method receives `(el, ctx, ...args)`; `ctx` has `page`, `el`, `name`, `params` and `pushEvent(type, detail)`.
+The shim calls `mounted` when a hooked element is in the document (at load, after a patch adds it, or when the hook is registered later), `updated` after a patch morphs the element's view (`ctx.params` is re-read first), and `destroyed` when the element leaves the document. Every method receives `(el, ctx, ...args)`; `ctx` has `page`, `el`, `name`, `params` and `pushEvent(type, detail)`. The type parameters name the element and the params type (`JaspringHook<E, P>`, `JaspringHookContext<P>`); `jaspring.d.ts` ships with the compiler.
 
 `pushEvent` dispatches a bubbling `CustomEvent`, so the component receives it through an ordinary binding: `<canvas data-jsp-hook="sparkline" (point-picked)="pick($event.detail.index)">`. Nothing on the server knows about hooks; only the element attribute and the event binding exist in the template.
 
 A patch morphs the whole changed view, hooked elements and their children included, so attributes, inline styles and child nodes that a script added are removed. Add `data-jsp-ignore` to an element whose DOM a widget owns (editors, maps, date pickers, Chart.js canvases). A patch then keeps its children and its attributes, and only adds or updates its `data-*` attributes, so new `data-jsp-hook-params` still reach `updated`. Removing `data-jsp-ignore` from the template lets the next patch morph the element again. Give the element a stable `id` so the morph always matches it to the same node.
 
 ```html
-<div id="editor" data-jsp-hook="editor" data-jsp-ignore [attr.data-jsp-hook-params]="doc() | json"></div>
+<div
+  id="editor"
+  data-jsp-hook="editor"
+  data-jsp-ignore
+  [attr.data-jsp-hook-params]="doc() | json"
+></div>
 ```
 
 ## Calling the browser

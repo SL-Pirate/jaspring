@@ -12,7 +12,7 @@ can resolve it from Maven Central. Consumers must add `mavenCentral()` under
 `pluginManagement.repositories`; see [Gradle plugin setup](../jaspring-gradle-plugin/README.md).
 Publishing to the Gradle Plugin Portal is not required and is not configured here.
 
-The sample application and tools are not published. All three artifacts include the
+The sample application and tools are not published. All published artifacts include the
 binary, sources, Javadoc, POM and Gradle module metadata. The POMs include project,
 developer, MIT license and SCM information. Jars include Jaspring's license;
 bundled JavaScript retains its upstream license texts.
@@ -27,8 +27,9 @@ such as `-rc.1`. `releaseVersion` rejects snapshots and malformed values.
 Use Oracle GraalVM 25.2.4 and the committed Gradle wrapper: `jaspring-browser-runtime` compiles
 against GraalVM's `org.graalvm.webimage.api` module (on another JDK 25 that module is skipped with a
 warning and the rest still builds). Normal JVM builds use the committed JavaScript bundle and do not
-need Node or pnpm; the client shim's tests (`tools/shim-tests`) run when Node 24 is installed and
-`pnpm install` was run there. The sample's WebAssembly build needs Binaryen's `wasm-as` 119+ and runs
+need Node or pnpm; the client shim's tests (`tools/shim`, which also checks that the committed shim
+matches its TypeScript source) and the TypeScript compiler's Node host tests run when Node 24 is
+installed and `pnpm install` was run there. The sample's WebAssembly build needs Binaryen's `wasm-as` 119+ and runs
 only with `-Pjaspring.wasm=true`.
 
 ```sh
@@ -36,7 +37,7 @@ only with `-Pjaspring.wasm=true`.
 python3 tools/verify-publications.py
 ```
 
-Tests run across all four modules. The repository under `build/repo` lets you
+Tests run across all five modules. The repository under `build/repo` lets you
 inspect the generated files without uploading anything or changing Maven Local.
 The Python 3 verifier checks artifact coverage, metadata, dependency relationships,
 checksums, sources, Javadoc and packaged resources. Without `--version`, it selects
@@ -104,7 +105,7 @@ Provide these Gradle properties in `~/.gradle/gradle.properties` or through the
 corresponding environment variables:
 
 | Environment variable                            | Value                                                                             |
-|-------------------------------------------------|-----------------------------------------------------------------------------------|
+| ----------------------------------------------- | --------------------------------------------------------------------------------- |
 | `ORG_GRADLE_PROJECT_mavenCentralUsername`       | Portal token username                                                             |
 | `ORG_GRADLE_PROJECT_mavenCentralPassword`       | Portal token password                                                             |
 | `ORG_GRADLE_PROJECT_signingInMemoryKey`         | Complete ASCII-armored private signing key, including header, footer and newlines |
@@ -172,7 +173,7 @@ automatically release the deployment.
 Configure these repository Actions secrets before running it:
 
 | Secret                   | Value                              |
-|--------------------------|------------------------------------|
+| ------------------------ | ---------------------------------- |
 | `MAVEN_CENTRAL_USERNAME` | Portal token username              |
 | `MAVEN_CENTRAL_PASSWORD` | Portal token password              |
 | `MAVEN_SIGNING_KEY`      | Complete ASCII-armored private key |

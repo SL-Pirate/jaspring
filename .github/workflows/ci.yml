@@ -18,7 +18,7 @@ jobs:
           distribution: graalvm
           # Keep the major.minor equal to `graal` in gradle/libs.versions.toml; other
           # GraalVM lines (25.0.x, 25.3+) make Truffle fall back to the interpreter.
-          version: '25.2'
+          version: "25.2"
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
@@ -33,23 +33,26 @@ jobs:
           echo "$HOME/binaryen/bin" >> "$GITHUB_PATH"
           "$HOME/binaryen/bin/wasm-as" --version
         env:
-          BINARYEN_VERSION: '133'
-      # Node runs the client shim's unit tests (tools/shim-tests); only framework developers need it.
+          BINARYEN_VERSION: "133"
+      # Node builds and tests the client shim (tools/shim) and runs the Node host tests; only framework developers need it.
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - uses: pnpm/action-setup@v4
         with:
           version: 10
       - name: Install shim test dependencies
-        run: pnpm install --frozen-lockfile --dir tools/shim-tests
+        run: pnpm install --frozen-lockfile --dir tools/shim
       - name: Build, test and publish to a local repository
         run: ./gradlew build publishAllPublicationsToBuildRepository -Pjaspring.wasm=true --console=plain
       - name: Record WebAssembly build size
         run: |
           ls -l jaspring-sample/build/jaspring/browser/image/ >> "$GITHUB_STEP_SUMMARY" || echo "no image built" >> "$GITHUB_STEP_SUMMARY"
-      - name: Fail when the Web Image tests were skipped
-        run: python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test BuildBrowserImageTest
+      - name: Fail when the Web Image or Node host tests were skipped
+        run: |
+          python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test BuildBrowserImageTest
+          python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test CompileTypescriptTest
+          python3 tools/ci/check-no-skipped.py jaspring-typescript/build/test-results/test NodeHostTest
       - name: Verify Maven publications
         run: python3 tools/verify-publications.py
       - name: Test documentation version updates

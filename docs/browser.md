@@ -82,9 +82,11 @@ Node 24 runs the module without `--experimental-wasm-exnref`. The module size is
 ## Trying it in the sample
 
 ```
-./gradlew :jaspring-sample:bootRun -Pjaspring.wasm=true
+./gradlew :jaspring-sample:bootRun
 ```
+
+The sample builds the image when Oracle GraalVM and `wasm-as` are found; `-Pjaspring.wasm=true` requires them and `-Pjaspring.wasm=false` skips the build.
 
 1. **Sparkline hook** (`src/main/typescript/sparkline.ts`, compiled by the Gradle plugin): the canvas draws at load; "Add point" redraws through `updated`; clicking a bar reports the index through a custom event; "Measure" shows the canvas size (hook method) and the viewport (page-level function). In DevTools the WebSocket frames show `call`, `result`, `patch`.
 2. **Browser closures**: the theme from `localStorage` appears after load without delaying first paint; "Toggle theme" writes `localStorage` and toggles a class on the host; "Where am I?" asks for geolocation; "Copy position" writes the clipboard. The Network tab shows `jaspring-app.js` and `.wasm` fetched once from `/_jaspring/app/<digest>/`, served from cache on reload.
-3. Without `-Pjaspring.wasm=true` the card explains that no WebAssembly build is available.
+3. Without the toolchain (or with `-Pjaspring.wasm=false`) the card explains that no WebAssembly build is available.

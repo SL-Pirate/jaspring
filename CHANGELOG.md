@@ -14,6 +14,7 @@ Notable changes to Jaspring. New work goes under **Unreleased**. On release, ren
 
 - The client shim (`jaspring.js`, `jaspring-wasm.js`) is written in TypeScript under `tools/shim` and compiled with `tsc`; the committed JavaScript is generated and checked against the sources by `shimTest`. Behaviour is unchanged. `tools/shim-tests` moved into `tools/shim`.
 - The sample's sparkline hook is `src/main/typescript/sparkline.ts`; the layout no longer links it by hand.
+- The sample builds its WebAssembly closures by default when Oracle GraalVM and Binaryen are found. `-Pjaspring.wasm=true` requires them (CI), `-Pjaspring.wasm=false` skips the build; before, the build was opt-in.
 
 ### Fixed
 

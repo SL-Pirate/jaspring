@@ -8,11 +8,21 @@ tasks.named<dev.isira.jaspring.gradle.GenerateComponent>("generateComponent") {
 	packageName.set("dev.isira.jaspring.sample.components")
 }
 
-// The WebAssembly build of the sample's Platform.onBrowser closures needs Oracle GraalVM and Binaryen, so it is
-// opt-in here: `./gradlew :jaspring-sample:bootRun -Pjaspring.wasm=true`. Without it the demo card explains itself.
+// The WebAssembly build of the sample's Platform.onBrowser closures needs Oracle GraalVM and Binaryen. It runs when
+// both are found, so a checkout without them still builds and the demo card explains itself. `-Pjaspring.wasm=true`
+// requires the toolchain (CI), `-Pjaspring.wasm=false` skips the build.
+val wasmProperty = providers.gradleProperty("jaspring.wasm").map(String::toBoolean)
+val wasmToolchain = runCatching {
+	dev.isira.jaspring.gradle.browser.GraalvmLocator.locate(
+		providers.gradleProperty("jaspring.browser.graalvmHome").map { file(it).toPath() }.orNull,
+		providers.gradleProperty("jaspring.browser.assemblerPath").map { file(it).toPath() }.orNull)
+}
+if (!wasmProperty.isPresent && wasmToolchain.isFailure) {
+	logger.lifecycle("jaspring-sample: WebAssembly build skipped; {}", wasmToolchain.exceptionOrNull()?.message)
+}
 jaspring {
 	browser {
-		skip.set(!providers.gradleProperty("jaspring.wasm").isPresent)
+		skip.set(wasmProperty.map { !it }.orElse(wasmToolchain.isFailure))
 	}
 }
 

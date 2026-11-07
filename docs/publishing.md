@@ -29,8 +29,8 @@ against GraalVM's `org.graalvm.webimage.api` module (on another JDK 25 that modu
 warning and the rest still builds). Normal JVM builds use the committed JavaScript bundle and do not
 need Node or pnpm; the client shim's tests (`tools/shim`, which also checks that the committed shim
 matches its TypeScript source) and the TypeScript compiler's Node host tests run when Node 24 is
-installed and `pnpm install` was run there. The sample's WebAssembly build needs Binaryen's `wasm-as` 119+ and runs
-only with `-Pjaspring.wasm=true`.
+installed and `pnpm install` was run there. The sample's WebAssembly build needs Binaryen's `wasm-as` 119+ and runs when
+it and Oracle GraalVM are found; `-Pjaspring.wasm=true` requires them, as CI does.
 
 ```sh
 ./gradlew clean build publishAllPublicationsToBuildRepository

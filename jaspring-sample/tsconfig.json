@@ -1,0 +1,7 @@
+{
+  "extends": "./build/jaspring/typescript/types/tsconfig.base.json",
+  "include": [
+    "src/main/typescript/**/*.ts",
+    "build/jaspring/typescript/types/jaspring.d.ts"
+  ]
+}

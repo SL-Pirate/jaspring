@@ -25,6 +25,10 @@ dependencies {
 	developmentOnly(platform(libs.spring.boot.dependencies))
 	implementation(project(":jaspring-spring-boot-starter"))
 	jaspringBrowser(project(":jaspring-browser-runtime"))
+	// The TypeScript compiler for src/main/typescript: the build task uses it, and during bootRun the starter's startup
+	// fallback recompiles sources the build has not seen (an IDE run without Gradle). Not part of the packaged application.
+	jaspringTypescript(project(":jaspring-typescript"))
+	developmentOnly(project(":jaspring-typescript"))
 	implementation(libs.spring.boot.starter.websocket)
 	developmentOnly(libs.spring.boot.devtools)
 

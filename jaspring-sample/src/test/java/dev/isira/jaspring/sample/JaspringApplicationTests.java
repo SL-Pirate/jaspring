@@ -26,6 +26,7 @@ class JaspringApplicationTests {
         assertTrue(html.contains("data-jsp-hook=\"sparkline\""), html);
         assertTrue(html.contains("data-jsp-hook-params=\"[\n  3,"), "the json pipe pretty-prints the points: " + html.substring(0, 200));
         assertTrue(html.contains("data-jsp-on=\"point-picked:"), html);
+        assertTrue(html.contains("<script type=\"module\" src=\"/_jaspring/ts/sparkline.js?v="), "the compiled hook script is injected: " + html);
         assertTrue(html.contains("<app-browser"), html);
         assertTrue(html.contains("Theme from localStorage"), html);
         assertTrue(html.contains("Todos (1 left)"), html);

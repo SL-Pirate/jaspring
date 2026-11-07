@@ -9,7 +9,7 @@ import dev.isira.jaspring.component.Component;
 import dev.isira.jaspring.signals.Signals;
 import dev.isira.jaspring.signals.WritableSignal;
 
-/// A canvas drawn by a client hook (static/sparkline.js). The hook reports clicks as a custom event, and the
+/// A canvas drawn by a client hook (src/main/typescript/sparkline.ts). The hook reports clicks as a custom event, and the
 /// server asks the browser for measurements through `Browser.call`.
 @Component(selector = "app-sparkline", templateUrl = "sparkline.component.html", styles = """
         :host { @apply mb-6 block rounded-lg border border-gray-200 bg-white p-4; }

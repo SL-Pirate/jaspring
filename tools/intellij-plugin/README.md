@@ -12,7 +12,7 @@ Build from the repository root with JDK 25:
 ```
 
 In IntelliJ IDEA, open **Settings → Plugins → gear menu → Install Plugin from Disk**, select
-`tools/intellij-plugin/build/distributions/jaspring-intellij-0.1.0.zip`, and restart when prompted.
+`tools/intellij-plugin/build/distributions/jaspring-intellij-0.1.1.zip`, and restart when prompted.
 
 The plugin recognizes `.component.html` files in modules with Jaspring on their source/classpath roots.
 Java-aware features activate when a Java `@Component(templateUrl = "...")` owns the file; there is no
@@ -58,7 +58,8 @@ rather than diagnosed as errors. Local-variable rename is not a supported refact
 strings and text blocks, not concatenated templates.
 
 The runtime's Angular compiler remains the authority for template validation. Compatibility is deliberately restricted to
-the tested IntelliJ 262 API line; newer IDE lines should be verified before widening the plugin's version range.
+the tested IntelliJ API lines, 262 and 263 (2026.2 and 2026.3); a newer line is verified with the tests
+(`test -PplatformVersion=<version>`) and JetBrains' plugin verifier (`verifyPlugin`) before the range is widened.
 
 ## Develop and verify
 
@@ -67,6 +68,8 @@ It uses the repository's existing wrapper:
 
 ```sh
 ./gradlew -p tools/intellij-plugin test buildPlugin verifyPluginStructure
+./gradlew -p tools/intellij-plugin test -PplatformVersion=2026.3   # the tests on the newest supported IDE line
+./gradlew -p tools/intellij-plugin verifyPlugin                   # JetBrains' plugin verifier against 2026.3
 ./gradlew -p tools/intellij-plugin runIde
 ```
 

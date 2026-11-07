@@ -14,6 +14,7 @@ Notable changes to Jaspring. New work goes under **Unreleased**. On release, ren
 
 - The client shim (`jaspring.js`, `jaspring-wasm.js`) is written in TypeScript under `tools/shim` and compiled with `tsc`; the committed JavaScript is generated and checked against the sources by `shimTest`. Behaviour is unchanged. `tools/shim-tests` moved into `tools/shim`.
 - The sample's sparkline hook is `src/main/typescript/sparkline.ts`; the layout no longer links it by hand.
+- IntelliJ plugin 0.1.1: IntelliJ IDEA 2026.3 (build 263) is supported (`until-build` 263.*), the deprecated `Query.iterator()` use is gone, and the plugin's tests also run on 2026.3 (`-PplatformVersion=2026.3`), where two platform pieces that moved out of the core are now loaded explicitly.
 - The sample builds its WebAssembly closures by default when Oracle GraalVM and Binaryen are found. `-Pjaspring.wasm=true` requires them (CI), `-Pjaspring.wasm=false` skips the build; before, the build was opt-in.
 
 ### Fixed

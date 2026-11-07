@@ -42,7 +42,8 @@ final class JaspringProjectModel {
             for (final var name : List.of(COMPONENT, DIRECTIVE, PIPE)) {
                 final var annotationType = JavaPsiFacade.getInstance(project).findClass(name, scope);
                 if (annotationType == null) continue;
-                for (final var type : AnnotatedElementsSearch.searchPsiClasses(annotationType, scope)) {
+                // findAll(): iterating a Query directly is deprecated and scheduled for removal.
+                for (final var type : AnnotatedElementsSearch.searchPsiClasses(annotationType, scope).findAll()) {
                     final var annotation = type.getAnnotation(name);
                     if (annotation != null) {
                         result.add(new Declaration(type, annotation, stringValue(annotation, "selector"), stringValue(annotation, "name")));

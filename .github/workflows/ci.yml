@@ -55,8 +55,8 @@ jobs:
           python3 tools/ci/check-no-skipped.py jaspring-typescript/build/test-results/test NodeHostTest
       - name: Verify Maven publications
         run: python3 tools/verify-publications.py
-      - name: Test documentation version updates
-        run: python3 -m unittest discover -s tools -p 'test_update_readme_versions.py'
+      - name: Test publication and documentation tooling
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
 
   jnpm:
     strategy:

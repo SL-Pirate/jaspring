@@ -1,41 +1,57 @@
-// Client hook for <canvas data-jsp-hook="sparkline">: draws the points the server renders into
-// data-jsp-hook-params, reports clicks as a custom event, and answers measurement calls.
+// Chart.js owns the canvas; Jaspring supplies its data and receives point selections.
+import Chart from "chart.js/auto";
 import { nanoid } from "nanoid";
 
-function draw(el: HTMLCanvasElement, points: number[]): void {
-  const context = el.getContext("2d");
-  if (!context) return;
-  const max = Math.max(...points, 1);
-  const step = el.width / points.length;
-  context.clearRect(0, 0, el.width, el.height);
-  context.fillStyle = "#111827";
-  points.forEach((value, index) => {
-    const height = (value / max) * (el.height - 8);
-    context.fillRect(index * step + 2, el.height - height, step - 4, height);
-  });
-}
+const charts = new WeakMap<HTMLCanvasElement, Chart<"bar", number[], string>>();
 
 jaspring.hooks.register<HTMLCanvasElement, number[]>("sparkline", {
   mounted(el, ctx) {
-    el.dataset.chartId = nanoid();
-    draw(el, ctx.params);
-    el.addEventListener("click", (event) => {
-      const points = ctx.params;
-      const index = Math.max(
-        0,
-        Math.min(
-          points.length - 1,
-          Math.floor(event.offsetX / (el.width / points.length)),
-        ),
-      );
-      ctx.pushEvent("point-picked", { index });
+    const chart = new Chart<"bar", number[], string>(el, {
+      type: "bar",
+      data: {
+        labels: ctx.params.map((_, index) => `Point ${index + 1}`),
+        datasets: [{
+          label: "Value",
+          data: [...ctx.params],
+          backgroundColor: "#111827",
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        responsive: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { display: false, beginAtZero: true },
+        },
+        onClick(_event, elements) {
+          const point = elements[0];
+          if (point) ctx.pushEvent("point-picked", { index: point.index });
+        },
+      },
     });
+    charts.set(el, chart);
+
+    const chartId = nanoid();
+    el.dataset.chartId = chartId;
+    const chartIdOutput = el.parentElement?.querySelector("[data-chart-id-output]");
+    if (chartIdOutput) chartIdOutput.textContent = chartId;
   },
   updated(el, ctx) {
-    draw(el, ctx.params);
+    const chart = charts.get(el);
+    if (!chart) return;
+    chart.data.labels = ctx.params.map((_, index) => `Point ${index + 1}`);
+    chart.data.datasets[0].data = [...ctx.params];
+    chart.update();
+  },
+  destroyed(el) {
+    charts.get(el)?.destroy();
+    charts.delete(el);
   },
   size(el) {
-    return { width: el.width, height: el.height };
+    const { width, height } = el.getBoundingClientRect();
+    return { width, height };
   },
 });
 

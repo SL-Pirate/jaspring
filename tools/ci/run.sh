@@ -49,6 +49,6 @@ podman run --rm \
             python3 tools/ci/check-no-skipped.py jaspring-gradle-plugin/build/test-results/test CompileTypescriptTest
             python3 tools/ci/check-no-skipped.py jaspring-typescript/build/test-results/test NodeHostTest
             python3 tools/verify-publications.py
-            PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p "test_update_readme_versions.py"
+            PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p "test_*.py"
         fi
     ' -- "$@"

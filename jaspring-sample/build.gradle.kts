@@ -27,6 +27,7 @@ jaspring {
 }
 
 jnpm {
+	implementation("chart.js:4.6.1")
 	implementation("nanoid:5.1.6")
 }
 

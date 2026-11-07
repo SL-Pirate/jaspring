@@ -12,7 +12,7 @@ Build from the repository root with JDK 25:
 ```
 
 In IntelliJ IDEA, open **Settings → Plugins → gear menu → Install Plugin from Disk**, select
-`tools/intellij-plugin/build/distributions/jaspring-intellij-0.1.1.zip`, and restart when prompted.
+`tools/intellij-plugin/build/distributions/jaspring-intellij-0.2.0.zip`, and restart when prompted.
 
 The plugin recognizes `.component.html` files in modules with Jaspring on their source/classpath roots.
 Java-aware features activate when a Java `@Component(templateUrl = "...")` owns the file; there is no

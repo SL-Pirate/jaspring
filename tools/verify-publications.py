@@ -33,6 +33,25 @@ def published_version(directory, version):
     return f"{version.removesuffix('SNAPSHOT')}{snapshot.findtext('timestamp')}-{snapshot.findtext('buildNumber')}"
 
 
+def verify_plugin_dependencies(dependencies, namespaces):
+    # JNPM needs JSON and archive support on Gradle's runtime classpath, independently of the application runtime.
+    expected = {("com.google.code.gson", "gson"), ("org.apache.commons", "commons-compress")}
+    coordinates = {
+        (dependency.findtext("m:groupId", namespaces=namespaces),
+         dependency.findtext("m:artifactId", namespaces=namespaces))
+        for dependency in dependencies
+    }
+    unexpected = coordinates - expected
+    require(not unexpected, "Unexpected Gradle plugin dependencies: "
+            + ", ".join(sorted(f"{group}:{artifact}" for group, artifact in unexpected))
+            + "; only Gson and Commons Compress build libraries are allowed, not Jaspring runtime or test libraries")
+    missing = expected - coordinates
+    require(not missing, "Missing Gradle plugin build dependencies: "
+            + ", ".join(sorted(f"{group}:{artifact}" for group, artifact in missing)))
+    require(all(dependency.findtext("m:scope", namespaces=namespaces) == "runtime" for dependency in dependencies),
+            "Gradle plugin build dependencies must use runtime scope")
+
+
 def verify(repository, version, require_signatures):
     artifacts = {"jaspring-core", "jaspring-browser-runtime", "jaspring-typescript", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
     group = repository / "dev/isira"
@@ -85,7 +104,7 @@ def verify(repository, version, require_signatures):
             require(set(dependencies) == {"jaspring-core"},
                     "The browser runtime depends on core only; the Web Image API is a GraalVM JDK module")
         else:
-            require(not dependencies, "The Gradle plugin must not depend on Jaspring's runtime or test libraries")
+            verify_plugin_dependencies(pom.findall("m:dependencies/m:dependency", ns), ns)
 
         metadata = json.loads((directory / (base + ".module")).read_text())
         require(all(metadata["component"].get(key) == value for key, value in

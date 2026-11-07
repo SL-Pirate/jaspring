@@ -17,12 +17,12 @@ jnpm {
 The same methods work in Groovy. Scoped names and npm semver ranges are supported; dist-tags, Git, file,
 URL and workspace dependencies are not. Declare each package in one scope.
 
-| Scope | Purpose |
-| --- | --- |
-| `implementation` | Browser runtime packages, including their own bundled typings |
-| `api` | Additional declarations, including `@types` packages |
-| `devImplementation` | Development tools and test packages |
-| `devApi` | Types used by development tools and tests |
+| Scope               | Purpose                                                       |
+|---------------------|---------------------------------------------------------------|
+| `implementation`    | Browser runtime packages, including their own bundled typings |
+| `api`               | Additional declarations, including `@types` packages          |
+| `devImplementation` | Development tools and test packages                           |
+| `devApi`            | Types used by development tools and tests                     |
 
 These scopes are independent of Java dependencies. `api` does not publish dependencies to another Gradle
 project. Runtime imports need an `implementation` declaration; type-only imports may also use `api`.
@@ -49,22 +49,23 @@ are disabled; packages requiring postinstall compilation or native Node addons a
 explicitly refreshes versions within the declared ranges. Normal builds use `npm ci`: missing or mismatched
 locks fail with instructions to run `jnpmLock`. Normal builds never update the committed lock.
 
-| Task | Purpose |
-| --- | --- |
-| `jnpmLock` | Create or reconcile the committed lock |
-| `jnpmUpdate` | Update versions within declared ranges |
-| `jnpmInstall` | Install the exact lock into `build/node_modules` |
-| `prepareJnpmTypes` | Generate declaration snapshots, editor configuration and IDE metadata |
-| `compileTypescript` | Type-check and bundle browser entrypoints |
-| `lintTypescript` | Run ESLint; included in `check` and `build` |
-| `fixTypescript` | Explicitly apply ESLint fixes |
+| Task                | Purpose                                                               |
+|---------------------|-----------------------------------------------------------------------|
+| `jnpmLock`          | Create or reconcile the committed lock                                |
+| `jnpmUpdate`        | Update versions within declared ranges                                |
+| `jnpmInstall`       | Install the exact lock into `build/node_modules`                      |
+| `prepareJnpmTypes`  | Generate declaration snapshots, editor configuration and IDE metadata |
+| `compileTypescript` | Type-check and bundle browser entrypoints                             |
+| `lintTypescript`    | Run ESLint; included in `check` and `build`                           |
+| `fixTypescript`     | Explicitly apply ESLint fixes                                         |
 
 Each application module owns its declarations and lock. Use qualified tasks such as `:app:jnpmLock` in
 multi-project builds. `clean` removes the installation and generated metadata. Tool downloads and npm's cache
 survive under Gradle's user cache, allowing offline reinstalls after an online build. Offline cache misses fail.
 
 For a centrally managed toolchain, set `jnpm.nodeHome` or `-Pjnpm.nodeHome=/path/to/node` to an unpacked Node
-distribution containing Node 22.15+ on the 22.x line, or Node 24+, and npm. The default is a checksum-pinned Node 22.23.1 distribution.
+distribution containing Node 22.15+ on the 22.x line, or Node 24+, and npm. The default is a checksum-pinned Node
+22.23.1 distribution.
 Managed distributions cover Linux, macOS and Windows on x64 and ARM64.
 
 ## TypeScript and assets
@@ -82,7 +83,9 @@ Extend the generated JNPM configuration from the application's `tsconfig.json`:
 ```json
 {
   "extends": "./build/jaspring/typescript/types/tsconfig.jnpm.json",
-  "include": ["src/main/typescript/**/*.ts"]
+  "include": [
+    "src/main/typescript/**/*.ts"
+  ]
 }
 ```
 
@@ -117,10 +120,10 @@ import ts from "typescript-eslint";
 import globals from "globals";
 
 export default [
-  js.configs.recommended,
-  ...ts.configs.recommended,
-  { languageOptions: { globals: { ...globals.browser, jaspring: "readonly" } } },
-  { rules: { "@typescript-eslint/no-explicit-any": "off" } },
+    js.configs.recommended,
+    ...ts.configs.recommended,
+    {languageOptions: {globals: {...globals.browser, jaspring: "readonly"}}},
+    {rules: {"@typescript-eslint/no-explicit-any": "off"}},
 ];
 ```
 

@@ -61,7 +61,7 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.isira:jaspring-spring-boot-starter:0.4.0")
+    implementation("dev.isira:jaspring-spring-boot-starter:0.5.0")
 }
 ```
 
@@ -71,7 +71,7 @@ For Maven:
 <dependency>
     <groupId>dev.isira</groupId>
     <artifactId>jaspring-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -102,7 +102,7 @@ Then add this to the existing `plugins` block in `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("dev.isira.jaspring") version "0.4.0"
+    id("dev.isira.jaspring") version "0.5.0"
 }
 ```
 

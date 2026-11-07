@@ -1,12 +1,25 @@
-<h2 class="mb-2 text-xl font-semibold">Sparkline (client hook)</h2>
+<h2 class="mb-2 text-xl font-semibold">Sparkline (Chart.js + JNPM)</h2>
 <canvas
+  id="sample-sparkline"
   width="240"
-  height="60"
+  height="120"
+  role="img"
+  aria-label="Sample values rendered with Chart.js"
   class="block cursor-pointer rounded bg-gray-100"
   data-jsp-hook="sparkline"
+  data-jsp-ignore
   [attr.data-jsp-hook-params]="points() | json"
   (point-picked)="pick($event.detail.index)"
 ></canvas>
+<p class="mt-2 text-sm text-gray-600">
+  Chart ID:
+  <code id="sample-chart-id" data-chart-id-output data-jsp-ignore>Waiting for the browser...</code>
+</p>
+<p class="mt-1 text-sm text-gray-600">
+  Chart rendered with <code>Chart.js</code>; ID generated in your browser by
+  <code>nanoid</code>. Both packages are installed with JNPM.
+  Reload the page for a new ID; adding points keeps the current one.
+</p>
 <p class="mt-2 text-sm text-gray-600">{{ picked() }}</p>
 <div class="mt-2 flex gap-2">
   <button

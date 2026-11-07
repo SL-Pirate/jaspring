@@ -21,7 +21,7 @@ jaspring.hooks.register<HTMLCanvasElement, number[]>("sparkline", {
 
 - `src/main/typescript/**/*.ts`: every file is compiled; nested paths are kept. Top-level files (`sparkline.ts`) are entry points and get a script tag in the page. Files in subdirectories (`lib/chart.ts`) are modules reached through imports: `import { draw } from './lib/chart.js'` (the `.js` extension, as in any ES module project; `./lib/chart.ts` is accepted and rewritten).
 - `.d.ts` files under the same root add ambient types; they emit nothing.
-- Output: one ES module per file under `/_jaspring/ts/<path>.js` (`sparkline.ts` → `/_jaspring/ts/sparkline.js`). No bundling, no npm packages, no `node_modules`.
+- Without JNPM, output is one ES module per file under `/_jaspring/ts/<path>.js`. With [JNPM](jnpm.md), entrypoints and npm dependencies are bundled into hashed browser modules and shared chunks.
 - The `jaspring` global is typed (`JaspringHook<E, P>`, `JaspringHookContext<P>`, `JaspringGlobal`; also importable as types from `'jaspring'`). The typings come from the client shim's own source, so they match what runs.
 
 The fixed compiler options: `target es2022`, `module esnext`, `moduleResolution bundler`, `strict`, `isolatedModules` with `verbatimModuleSyntax`, `lib es2022` + `dom`, every file a module. They are not configurable: the import rule, the served format and the editor setup depend on them.
@@ -57,6 +57,8 @@ src/main/typescript/sparkline.ts(12,5): error TS2322: Type 'string' is not assig
 
 ## Editor
 
+JNPM applications extend `tsconfig.jnpm.json` instead of `tsconfig.base.json` below; run `prepareJnpmTypes` first. See [JNPM](jnpm.md) for dependency declarations, locks, linting and private registries.
+
 A `tsconfig.json` in the project root makes IntelliJ and VS Code check the sources with the build's options and typings. Run any build (or `./gradlew extractTypescriptTypes`) once so the extended file exists:
 
 ```json
@@ -81,6 +83,8 @@ Module scripts are deferred by the HTML specification and run after the classic 
 
 ## Startup fallback
 
+This source-only fallback applies to applications without JNPM. JNPM applications build before startup; stale bundles produce an instruction to run `compileTypescript` instead of attempting npm resolution at runtime.
+
 The build's manifest records a digest per source. With `dev.isira:jaspring-typescript` on the runtime classpath (`developmentOnly` in Gradle, `runtime` scope in Maven), the starter compares it at startup with `src/main/typescript` next to the working directory (or `classpath:/typescript/` when that directory is absent) and compiles when the manifest is missing or stale: an IDE run that bypassed Gradle, or a build without the plugin. The result is served from memory. Errors fail startup, like a template Angular rejects. A packaged application has no sources, so the manifest stands and nothing runs.
 
 | Property                         | Default               | Meaning                           |
@@ -95,5 +99,5 @@ Spring devtools does not watch `.ts` files: after editing one, run `./gradlew co
 ## Limits
 
 - TypeScript 6 is the end of the JavaScript compiler; language features after it would need a native host.
-- No bundling and no npm imports: a script may import its sibling modules only. Third-party libraries are loaded the usual way (a `<script>` in the layout) and typed with a local `.d.ts`.
+- Without JNPM, scripts import sibling modules only; third-party scripts can still be linked in the layout and typed locally. JNPM adds browser npm imports and bundling. Node/OS APIs remain unsupported.
 - A JVM without GraalVM's optimizing compiler runs the compiler interpreted, about twice as slow cold; the build says so. `host = NODE` avoids it where Node is installed.

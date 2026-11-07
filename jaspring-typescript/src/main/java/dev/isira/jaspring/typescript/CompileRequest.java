@@ -5,11 +5,16 @@ import java.util.List;
 import java.util.Objects;
 
 /// The files of one program. The compiler adds `jaspring.d.ts` and the standard libs itself.
-public record CompileRequest(List<SourceFile> files, CompileOptions options) {
+public record CompileRequest(List<SourceFile> files, CompileOptions options, DependencySnapshot dependencies) {
+
+    public CompileRequest(List<SourceFile> files, CompileOptions options) {
+        this(files, options, DependencySnapshot.EMPTY);
+    }
 
     public CompileRequest {
         files = List.copyOf(files);
         Objects.requireNonNull(options, "options");
+        Objects.requireNonNull(dependencies, "dependencies");
         final var seen = new HashSet<String>();
         for (final var file : files) {
             if (!seen.add(file.path())) throw new IllegalArgumentException("Duplicate source path: '" + file.path() + "'");

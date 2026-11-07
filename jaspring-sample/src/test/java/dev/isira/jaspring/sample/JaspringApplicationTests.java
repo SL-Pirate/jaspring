@@ -26,7 +26,11 @@ class JaspringApplicationTests {
         assertTrue(html.contains("data-jsp-hook=\"sparkline\""), html);
         assertTrue(html.contains("data-jsp-hook-params=\"[\n  3,"), "the json pipe pretty-prints the points: " + html.substring(0, 200));
         assertTrue(html.contains("data-jsp-on=\"point-picked:"), html);
-        assertTrue(html.contains("<script type=\"module\" src=\"/_jaspring/ts/sparkline.js?v="), "the compiled hook script is injected: " + html);
+        final var entry = java.util.regex.Pattern.compile("<script type=\"module\" src=\"(/_jaspring/ts/sparkline-[A-Z0-9]+\\.js[^\"]*)\"").matcher(html);
+        assertTrue(entry.find(), "the bundled hook script is injected: " + html);
+        final var script = mockMvc.perform(get(entry.group(1))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(script.contains("getRandomValues"), "nanoid's browser implementation is bundled");
+        assertFalse(script.contains("node:crypto"));
         assertTrue(html.contains("<app-browser"), html);
         assertTrue(html.contains("Theme from localStorage"), html);
         assertTrue(html.contains("Todos (1 left)"), html);

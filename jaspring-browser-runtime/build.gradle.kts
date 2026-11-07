@@ -18,17 +18,20 @@ dependencies {
 }
 
 tasks.withType<JavaCompile>().configureEach {
+	val hasGraalvm = graalvm
 	options.compilerArgs.addAll(listOf("--add-modules", "org.graalvm.webimage.api", "-parameters"))
-	onlyIf("the build runs on Oracle GraalVM") {
-		if (!graalvm) logger.warn("${path} skipped: jaspring-browser-runtime needs Oracle GraalVM (org.graalvm.webimage.api)")
-		graalvm
+	onlyIf("the build runs on Oracle GraalVM") { task ->
+		if (!hasGraalvm) task.logger.warn("${task.path} skipped: jaspring-browser-runtime needs Oracle GraalVM (org.graalvm.webimage.api)")
+		hasGraalvm
 	}
 }
 tasks.withType<Javadoc>().configureEach {
+	val hasGraalvm = graalvm
 	(options as CoreJavadocOptions).addStringOption("-add-modules", "org.graalvm.webimage.api")
-	onlyIf("the build runs on Oracle GraalVM") { graalvm }
+	onlyIf("the build runs on Oracle GraalVM") { hasGraalvm }
 }
 tasks.withType<Test>().configureEach {
+	val hasGraalvm = graalvm
 	jvmArgs("--add-modules", "org.graalvm.webimage.api")
-	onlyIf("the build runs on Oracle GraalVM") { graalvm }
+	onlyIf("the build runs on Oracle GraalVM") { hasGraalvm }
 }

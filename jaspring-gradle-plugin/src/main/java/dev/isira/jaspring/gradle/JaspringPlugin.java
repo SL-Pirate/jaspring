@@ -23,6 +23,11 @@ import dev.isira.jaspring.gradle.browser.GraalvmLocator;
 /// manifest as resources.
 public final class JaspringPlugin implements Plugin<Project> {
 
+    @javax.inject.Inject
+    public JaspringPlugin(org.gradle.tooling.provider.model.ToolingModelBuilderRegistry models) {
+        models.register(new dev.isira.jaspring.gradle.jnpm.JnpmModelBuilder());
+    }
+
     public static final String BROWSER_CONFIGURATION = "jaspringBrowser";
     public static final String TYPESCRIPT_CONFIGURATION = "jaspringTypescript";
 
@@ -38,6 +43,7 @@ public final class JaspringPlugin implements Plugin<Project> {
             final var extension = project.getExtensions().create("jaspring", JaspringExtension.class);
             browserBuild(project, extension);
             typescriptBuild(project, extension);
+            dev.isira.jaspring.gradle.jnpm.JnpmTasks.register(project, extension);
         });
     }
 
@@ -191,6 +197,7 @@ public final class JaspringPlugin implements Plugin<Project> {
     /// Tool versions that must invalidate a cached image; empty when the toolchain is absent (the task then fails
     /// with the locator's explanation instead of at configuration time).
     private static String fingerprint(JaspringExtension.Browser browser) {
+        if (browser.getSkip().get()) return "";
         try {
             final var toolchain = GraalvmLocator.locate(browser.getGraalvmHome().map(dir -> dir.getAsFile().toPath()).getOrNull(),
                     browser.getAssemblerPath().map(file -> file.getAsFile().toPath()).getOrNull());

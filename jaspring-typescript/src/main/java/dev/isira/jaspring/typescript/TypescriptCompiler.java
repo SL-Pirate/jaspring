@@ -68,7 +68,12 @@ public final class TypescriptCompiler implements AutoCloseable {
 
     /// Compiles one program. Type errors come back as diagnostics, never as exceptions.
     public CompileResult compile(CompileRequest request) {
-        return RequestCodec.result(bundle.run(RequestCodec.compile(request.files(), types, request.options())));
+        return RequestCodec.result(bundle.run(RequestCodec.compile(request, types, false)));
+    }
+
+    /// Checks a package-aware program without emitting JavaScript; a bundler owns its runtime output.
+    public CompileResult check(CompileRequest request) {
+        return RequestCodec.result(bundle.run(RequestCodec.compile(request, types, true)));
     }
 
     /// Transpiles one file alone, without type checking: the same JavaScript [#compile] would emit for it.

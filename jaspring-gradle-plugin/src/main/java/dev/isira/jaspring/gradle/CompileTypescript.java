@@ -39,6 +39,20 @@ import dev.isira.jaspring.gradle.browser.GraalvmLocator;
 @CacheableTask
 public abstract class CompileTypescript extends DefaultTask {
 
+    @org.gradle.api.tasks.Optional
+    @org.gradle.api.tasks.InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    public abstract org.gradle.api.file.RegularFileProperty getJnpmConfigFile();
+
+    @org.gradle.api.tasks.Optional
+    @org.gradle.api.tasks.InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    public abstract org.gradle.api.file.RegularFileProperty getJnpmDependencies();
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getJnpmInputs();
+
     public static final String MANIFEST = "jaspring-typescript.json";
     static final String CLI_CLASS = "dev.isira.jaspring.typescript.Cli";
 
@@ -93,7 +107,7 @@ public abstract class CompileTypescript extends DefaultTask {
     public void compile() throws IOException {
         final var outputDir = getOutputDir().get().getAsFile().toPath();
         final var manifestDir = getManifestDir().get().getAsFile().toPath();
-        getFileSystem().delete(spec -> spec.delete(outputDir, manifestDir));
+        if (!getJnpmConfigFile().isPresent()) getFileSystem().delete(spec -> spec.delete(outputDir, manifestDir));
         Files.createDirectories(outputDir);
         Files.createDirectories(manifestDir);
         TypescriptTypes.extract(getCompilerClasspath().getFiles(), getTypesDir().get().getAsFile().toPath());
@@ -111,6 +125,12 @@ public abstract class CompileTypescript extends DefaultTask {
                 "--host", getHost().get().name().toLowerCase(Locale.ROOT)));
         if (!getTypeCheck().get()) arguments.add("--no-type-check");
         if (getNodePath().isPresent()) arguments.addAll(List.of("--node", getNodePath().get()));
+        if (getJnpmDependencies().isPresent()) {
+            arguments.addAll(List.of("--dependencies", getJnpmDependencies().get().getAsFile().getAbsolutePath()));
+            // Keep the last successful manifest untouched until both checking and bundling succeed.
+            arguments.set(arguments.indexOf("--manifest") + 1, work.resolve(MANIFEST).toString());
+            dev.isira.jaspring.gradle.jnpm.JnpmBuildSupport.run(getJnpmConfigFile().get().getAsFile().toPath(), "validate", List.of(), getLogger());
+        }
 
         final var queue = getWorkers().processIsolation(spec -> {
             spec.getClasspath().from(getCompilerClasspath());
@@ -158,7 +178,11 @@ public abstract class CompileTypescript extends DefaultTask {
                     + (getHost().get() == JaspringExtension.Typescript.Host.NODE ? " -Pjaspring.typescript.host=graaljs needs no Node."
                     : " -Pjaspring.typescript.host=node runs the same compiler in Node."));
         }
-        final var count = Files.readString(manifestDir.resolve(MANIFEST)).split("\"output\":\"", -1).length - 1;
+        if (getJnpmConfigFile().isPresent()) {
+            dev.isira.jaspring.gradle.jnpm.JnpmBuildSupport.run(getJnpmConfigFile().get().getAsFile().toPath(), "bundle",
+                    List.of(outputDir.toString(), manifestDir.resolve(MANIFEST).toString()), getLogger());
+        }
+        final var count = getSources().getFiles().size();
         getLogger().lifecycle("{}: {} file(s) compiled from {}", getPath(), count, prefix.replaceAll("/$", ""));
     }
 

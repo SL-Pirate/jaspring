@@ -61,6 +61,9 @@ public final class LayoutRenderer {
         }
         document = insertBefore(document, "</head>", styles.allAsStyleBlock());
         if (transport != JaspringProperties.Transport.OFF && pageId != null) {
+            for (final var stylesheet : this.scripts.stylesheets()) {
+                document = insertBefore(document, "</head>", "<link rel=\"stylesheet\" href=\"" + TypescriptScripts.URL_PREFIX + stylesheet + "\">\n");
+            }
             if (assets.policy() == BrowserAssets.Policy.EAGER) {
                 document = insertBefore(document, "</head>", "<link rel=\"preload\" as=\"script\" href=\"" + assets.launcherUrl() + "\">\n"
                         + "<link rel=\"preload\" as=\"fetch\" crossorigin href=\"" + assets.moduleUrl() + "\">\n");

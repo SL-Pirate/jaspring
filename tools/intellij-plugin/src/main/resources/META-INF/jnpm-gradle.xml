@@ -1,0 +1,19 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
+        <projectResolve implementation="dev.isira.jaspring.ide.jnpm.gradle.JnpmResolver"/>
+    </extensions>
+    <extensions defaultExtensionNs="com.intellij">
+        <externalProjectDataService implementation="dev.isira.jaspring.ide.jnpm.gradle.JnpmDataService"/>
+    </extensions>
+    <projectListeners>
+        <listener class="dev.isira.jaspring.ide.jnpm.gradle.JnpmRuns" topic="com.intellij.execution.RunManagerListener"/>
+    </projectListeners>
+    <actions>
+        <group id="Jaspring.Jnpm" text="JNPM" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="Jaspring.Jnpm.Prepare" class="dev.isira.jaspring.ide.jnpm.gradle.JnpmAction$Prepare" text="Prepare Dependencies"/>
+            <action id="Jaspring.Jnpm.Lock" class="dev.isira.jaspring.ide.jnpm.gradle.JnpmAction$Lock" text="Reconcile Dependency Lock"/>
+            <action id="Jaspring.Jnpm.Update" class="dev.isira.jaspring.ide.jnpm.gradle.JnpmAction$Update" text="Update Dependencies"/>
+        </group>
+    </actions>
+</idea-plugin>

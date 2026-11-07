@@ -1,7 +1,7 @@
 # Jaspring for IntelliJ IDEA
 
 A standalone Java-aware plugin for Jaspring templates, targeting IntelliJ IDEA 2026.2 (build 262).
-It depends on IntelliJ's Java and XML/HTML support. Angular, JavaScript/TypeScript, Node.js and a language server are not required.
+Template features depend on IntelliJ's Java and XML/HTML support. Optional Gradle and JavaScript/TypeScript integrations add JNPM support; Angular and Node.js plugins are not required.
 
 ## Install
 
@@ -48,7 +48,19 @@ IntelliJ must have imported the Gradle/Maven project and finished indexing for J
 
 Templates remain HTML-compatible files, so existing HTML/CSS tooling can participate. The plugin does not change Tailwind configuration.
 
-## Current limits
+## JNPM browser dependencies
+
+For projects using [JNPM](../../docs/jnpm.md), Gradle sync imports dependency scopes and registers package roots
+as libraries, then runs `prepareJnpmTypes`. Use a root `tsconfig.json` extending the generated `tsconfig.jnpm.json`
+for TypeScript completion and navigation. With the JavaScript/TypeScript plugin installed, Jaspring runs the
+project's managed ESLint on unsaved editor text and exposes diagnostics and fixes. It uses the same config as
+Gradle's `lintTypescript` task.
+
+**Tools → JNPM** provides preparation, lock reconciliation and dependency updates. Reconcile a missing lock
+explicitly; sync never changes it. After `clean`, prepare dependencies again. Application run configurations
+receive a `compileTypescript` before-run task, avoiding duplicate frontend build tasks.
+
+## Template limits
 
 This is an initial code-insight implementation, not an IDE port of the entire Angular compiler. It does not provide full
 template type checking, Angular grammar diagnostics, overload selection, or a control-flow-aware formatter.
@@ -69,6 +81,7 @@ It uses the repository's existing wrapper:
 ```sh
 ./gradlew -p tools/intellij-plugin test buildPlugin verifyPluginStructure
 ./gradlew -p tools/intellij-plugin test -PplatformVersion=2026.3   # the tests on the newest supported IDE line
+./gradlew -p tools/intellij-plugin test -PjnpmIdeIntegration=true # include Gradle/JavaScript integration registration
 ./gradlew -p tools/intellij-plugin verifyPlugin                   # JetBrains' plugin verifier against 2026.3
 ./gradlew -p tools/intellij-plugin runIde
 ```
@@ -79,7 +92,8 @@ To use an already installed IntelliJ IDEA 2026.2 SDK instead of downloading it, 
 
 Tests use IntelliJ's Java code-insight fixtures and their JUnit test stack. They exercise actual completion, references,
 refactoring, language injection and project resource roots. The test IDE loads Jaspring and its Java/XML dependencies
-without the Angular or JavaScript plugins.
+without the Angular or JavaScript plugins by default. `-PjnpmIdeIntegration=true` also loads Gradle and JavaScript
+and verifies the optional integrations.
 
 ## Reused code
 

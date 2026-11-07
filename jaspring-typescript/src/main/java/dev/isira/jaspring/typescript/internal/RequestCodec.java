@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import dev.isira.jaspring.typescript.CompileOptions;
+import dev.isira.jaspring.typescript.CompileRequest;
 import dev.isira.jaspring.typescript.CompileResult;
 import dev.isira.jaspring.typescript.SourceFile;
 import dev.isira.jaspring.typescript.TypescriptException;
@@ -26,11 +27,19 @@ public final class RequestCodec {
     }
 
     public static String compile(List<SourceFile> files, List<SourceFile> types, CompileOptions options) {
+        return compile(new CompileRequest(files, options), types, false);
+    }
+
+    public static String compile(CompileRequest input, List<SourceFile> types, boolean noEmit) {
         final var request = new LinkedHashMap<String, Object>();
         request.put("op", "compile");
-        request.put("options", options(options));
+        final var options = options(input.options());
+        options.put("noEmit", noEmit);
+        request.put("options", options);
         request.put("types", files(types));
-        request.put("files", files(files));
+        request.put("files", files(input.files()));
+        request.put("dependencies", Map.of("files", input.dependencies().files(), "globalTypes", input.dependencies().globalTypes(),
+                "allowedImports", input.dependencies().allowedImports()));
         return Json.write(request);
     }
 

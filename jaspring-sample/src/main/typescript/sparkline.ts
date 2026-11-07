@@ -1,5 +1,7 @@
 // Client hook for <canvas data-jsp-hook="sparkline">: draws the points the server renders into
 // data-jsp-hook-params, reports clicks as a custom event, and answers measurement calls.
+import { nanoid } from "nanoid";
+
 function draw(el: HTMLCanvasElement, points: number[]): void {
   const context = el.getContext("2d");
   if (!context) return;
@@ -15,6 +17,7 @@ function draw(el: HTMLCanvasElement, points: number[]): void {
 
 jaspring.hooks.register<HTMLCanvasElement, number[]>("sparkline", {
   mounted(el, ctx) {
+    el.dataset.chartId = nanoid();
     draw(el, ctx.params);
     el.addEventListener("click", (event) => {
       const points = ctx.params;

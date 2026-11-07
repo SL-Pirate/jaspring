@@ -32,10 +32,26 @@ public final class TypescriptManifestLoader {
     @SuppressWarnings("unchecked")
     public static TypescriptScripts parse(String json) {
         final var root = JsonMapper.builder().build().readValue(json, Map.class);
+        final var version = ((Number) root.getOrDefault("version", 1)).intValue();
+        if (version != 1 && version != 2) throw new IllegalArgumentException("Unsupported Jaspring TypeScript manifest version: " + version);
         final var scripts = new ArrayList<TypescriptScripts.Script>();
         for (final var entry : (List<Map<String, Object>>) root.getOrDefault("files", List.of())) {
-            scripts.add(new TypescriptScripts.Script((String) entry.get("source"), (String) entry.get("sha256"), (String) entry.get("output"), null));
+            scripts.add(new TypescriptScripts.Script(safePath((String) entry.get("source")), (String) entry.get("sha256"), safePath((String) entry.get("output")), null));
         }
-        return new TypescriptScripts((String) root.get("typescript"), scripts);
+        if (version == 1) return new TypescriptScripts((String) root.get("typescript"), scripts);
+        final var entries = ((List<String>) root.getOrDefault("entries", List.of())).stream().map(TypescriptManifestLoader::safePath).toList();
+        final var styles = ((List<String>) root.getOrDefault("styles", List.of())).stream().map(TypescriptManifestLoader::safePath).toList();
+        final var inputs = (Map<String, String>) root.getOrDefault("inputs", Map.of());
+        inputs.keySet().forEach(TypescriptManifestLoader::safePath);
+        return new TypescriptScripts((String) root.get("typescript"), scripts, true, entries, styles, (String) root.get("lockSha256"), inputs);
+    }
+
+    private static String safePath(String path) {
+        if (path == null) return null;
+        if (path.isEmpty() || path.startsWith("/") || path.contains("\\") || path.contains("\"") || path.contains("<") || path.contains("?") || path.contains("#")
+                || java.util.Arrays.stream(path.split("/", -1)).anyMatch(part -> part.isEmpty() || part.equals(".") || part.equals(".."))) {
+            throw new IllegalArgumentException("Invalid TypeScript manifest path: " + path);
+        }
+        return path;
     }
 }

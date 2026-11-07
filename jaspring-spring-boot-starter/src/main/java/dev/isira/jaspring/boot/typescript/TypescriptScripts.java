@@ -9,7 +9,12 @@ import org.springframework.core.io.Resource;
 /// `jaspring/jaspring-typescript.json`, or what the startup fallback compiled when that manifest was missing or
 /// stale. Served under [#URL_PREFIX]; top-level files are entry points and get a `<script type="module">` tag,
 /// files in subdirectories are modules reached through imports.
-public record TypescriptScripts(String typescript, List<Script> scripts) {
+public record TypescriptScripts(String typescript, List<Script> scripts, boolean bundled, List<String> entries,
+                                List<String> stylesheets, String lockSha256, java.util.Map<String, String> inputs) {
+
+    public TypescriptScripts(String typescript, List<Script> scripts) {
+        this(typescript, scripts, false, List.of(), List.of(), null, java.util.Map.of());
+    }
 
     public static final String URL_PREFIX = "/_jaspring/ts/";
 
@@ -17,6 +22,9 @@ public record TypescriptScripts(String typescript, List<Script> scripts) {
 
     public TypescriptScripts {
         scripts = List.copyOf(scripts);
+        entries = List.copyOf(entries);
+        stylesheets = List.copyOf(stylesheets);
+        inputs = java.util.Map.copyOf(inputs);
     }
 
     /// `output` is null for declaration files; `resource` is null when the file is on the classpath under
@@ -28,7 +36,8 @@ public record TypescriptScripts(String typescript, List<Script> scripts) {
     }
 
     public List<Script> entryPoints() {
-        return scripts.stream().filter(script -> script.output() != null && script.output().indexOf('/') < 0).toList();
+        return scripts.stream().filter(script -> script.output() != null &&
+                (bundled ? entries.contains(script.output()) : script.output().indexOf('/') < 0)).toList();
     }
 
     public Optional<Resource> inMemory(String output) {

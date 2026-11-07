@@ -3,7 +3,7 @@ plugins {
 	alias(libs.plugins.maven.publish)
 }
 
-description = "Gradle tasks for generating Jaspring Java components and their templates."
+description = "Jaspring component scaffolding, browser builds, TypeScript and JNPM dependencies."
 
 gradlePlugin {
 	plugins {
@@ -17,6 +17,8 @@ gradlePlugin {
 }
 
 dependencies {
+	implementation("com.google.code.gson:gson:2.15.0")
+	implementation("org.apache.commons:commons-compress:1.28.0")
 	testImplementation(platform(libs.spring.boot.dependencies))
 	testImplementation(libs.junit.jupiter)
 	testRuntimeOnly(libs.junit.launcher)
@@ -43,6 +45,10 @@ dependencies {
 }
 tasks.test {
 	dependsOn(coreJar, browserRuntimeJar)
+	dependsOn(":jaspring-sample:jnpmInstall")
+	systemProperty("jnpm.test.workspace", project(":jaspring-sample").layout.buildDirectory.get().asFile.absolutePath)
+	systemProperty("jnpm.test.script", layout.projectDirectory.file("src/test/js/jnpm.test.mjs").asFile.absolutePath)
+	inputs.files(fileTree("src/test/js"))
 	inputs.files(typescriptRuntime)
 	systemProperty("jaspring.coreJar", coreJar.get().archiveFile.get().asFile.absolutePath)
 	systemProperty("jaspring.browserRuntimeJar", browserRuntimeJar.get().archiveFile.get().asFile.absolutePath)

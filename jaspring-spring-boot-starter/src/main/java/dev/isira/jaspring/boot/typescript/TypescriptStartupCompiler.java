@@ -1,8 +1,15 @@
 package dev.isira.jaspring.boot.typescript;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +46,12 @@ public final class TypescriptStartupCompiler {
     }
 
     public static TypescriptScripts compileIfStale(JaspringProperties.Typescript settings, TypescriptScripts manifest, List<TypescriptSources.Source> sources) {
+        if (!sources.isEmpty() && (manifest.bundled() || Files.exists(Path.of("jnpm.lock")))) {
+            if (stale(manifest, sources) || !bundleInputsMatch(Path.of(settings.getSourceDir()), Path.of("jnpm.lock"), manifest)) {
+                throw new TypescriptCompileException("JNPM browser bundles are missing or stale; run ./gradlew compileTypescript before starting the application");
+            }
+            return manifest;
+        }
         if (!stale(manifest, sources)) return manifest;
         final var started = System.nanoTime();
         final var host = settings.getHost() == JaspringProperties.Typescript.Host.NODE ? Host.NODE : Host.GRAALJS;
@@ -70,6 +83,31 @@ public final class TypescriptStartupCompiler {
                 settings.isTypeCheck() ? "" : " without type checking", (System.nanoTime() - started) / 1_000_000,
                 manifest.isEmpty() ? "no build manifest" : "the build manifest is stale");
         return new TypescriptScripts(version, scripts);
+    }
+
+    static boolean bundleInputsMatch(Path sourceDirectory, Path lock, TypescriptScripts manifest) {
+        if (!manifest.bundled()) return false;
+        try {
+            if (!Files.isRegularFile(lock) || !sha256(lock).equals(manifest.lockSha256())) return false;
+            if (!Files.isDirectory(sourceDirectory)) return false;
+            final var current = new TreeMap<String, String>();
+            try (var paths = Files.walk(sourceDirectory)) {
+                for (final var file : paths.filter(Files::isRegularFile).toList()) {
+                    current.put(sourceDirectory.relativize(file).toString().replace(java.io.File.separatorChar, '/'), sha256(file));
+                }
+            }
+            return current.equals(manifest.inputs());
+        } catch (IOException e) {
+            throw new TypescriptCompileException("Cannot verify JNPM build inputs: " + e.getMessage());
+        }
+    }
+
+    private static String sha256(Path file) throws IOException {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static String outputPath(String source) {

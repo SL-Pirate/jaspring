@@ -144,6 +144,22 @@ jaspring {
 }
 ```
 
+## JNPM
+
+Declare npm browser dependencies directly in Gradle:
+
+```kotlin
+jnpm {
+    implementation("nanoid:5.1.6")
+    api("@types/lodash-es:^4.17.12")
+}
+```
+
+Run `jnpmLock`, commit `jnpm.lock`, then build normally. JNPM manages Node/npm, installs into `build/node_modules`,
+and bundles browser entrypoints through `compileTypescript`. ESLint runs with `check`. Node/OS API imports fail
+the build; there are no automatic polyfills. See [the JNPM guide](../docs/jnpm.md) for the four dependency scopes,
+private registries, editor setup, lint customization and offline builds.
+
 ## Build configuration defaults
 
 Set a default package or adjust output roots in the consuming build:

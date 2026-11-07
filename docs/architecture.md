@@ -8,9 +8,9 @@ Jaspring = **Ja**va + **Spri**ng + A**ng**ular. Templates use Angular's HTML tem
 - `jaspring-browser-runtime`: the browser side of `Platform.onBrowser` closures: the `BrowserClient` facade implemented with GraalVM Web Image's `@JS` interop. Compiles only on Oracle GraalVM and runs only inside the WebAssembly module.
 - `jaspring-typescript`: the TypeScript compiler (6.x, bundled) hosted in GraalJS or Node, with the `jaspring.d.ts` typings. Used by the Gradle plugin at build time and by the starter's startup fallback.
 - `jaspring-spring-boot-starter`: Spring Boot auto-configuration, the MVC `View`, the live-event transports (WebSocket, HTTP), the client shim, the WebAssembly loader and the serving of compiled TypeScript.
-- `jaspring-gradle-plugin`: component scaffolding, the WebAssembly build of browser closures (scan, generate, `native-image --tool:svm-wasm`) and the TypeScript build of `src/main/typescript`.
+- `jaspring-gradle-plugin`: component scaffolding, WebAssembly builds, TypeScript checking, and JNPM's npm installation, esbuild bundling, linting and Gradle tooling model.
 - `jaspring-sample`: a demo application.
-- `tools/js-bundle`: the Node project that bundles `@angular/compiler` and PostCSS into one ESM file committed under `jaspring-core/src/main/resources/jaspring/js/`, and the TypeScript compiler into one under `jaspring-typescript`. Only framework developers need Node.
+- `tools/js-bundle`: the Node project that bundles `@angular/compiler` and PostCSS into one ESM file committed under `jaspring-core/src/main/resources/jaspring/js/`, and the TypeScript compiler into one under `jaspring-typescript`. Framework developers maintain these bundles; JNPM provisions its own build toolchain for applications.
 - `tools/shim`: the client shim's TypeScript sources, built with `tsc` into the starter (committed), the `jaspring.d.ts` typings, and jsdom tests of the built shim. Framework developers only.
 
 ## Pipeline
@@ -26,4 +26,4 @@ Jaspring = **Ja**va + **Spri**ng + A**ng**ular. Templates use Angular's HTML tem
 - Signals and zone-based change detection are both first-class. The current zone and the current reactive consumer are thread-bound (ThreadLocal today, ScopedValue later).
 - Virtual threads carry requests, forked work and live pages. Rendering itself is sequential; one mutator per page.
 - TypeScript is compiled by the bundled TypeScript 6 compiler on GraalJS at build time (Node is an optional, faster host for the same bundle). 6.x is the last JavaScript release of the compiler; 7.x is a native binary, out of reach of the dependency rule, so the supported language is the 6.x line.
-- Dependencies: Spring, GraalVM (including Web Image), PostCSS and the TypeScript compiler are trusted. Everything else is written in-house or vendored as an owned copy.
+- JNPM is build-time tooling: Java owns the Gradle workflow, npm resolves dependencies, esbuild bundles browser code and ESLint checks it. Gson handles tooling metadata and Commons Compress extracts the pinned Node distribution. These tools are absent from packaged applications.

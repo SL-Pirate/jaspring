@@ -19,20 +19,20 @@ import dev.isira.jaspring.typescript.internal.Json;
 ///
 /// ```
 /// --source-dir <dir> --out <dir> --manifest <file> --diagnostics <file> [--no-type-check] [--source-map]
-///     [--host graaljs|node] [--node <executable>]
+///     [--host graaljs|node] [--node <executable>] [--dependencies <snapshot.json>]
 /// ```
 ///
 /// Every `**/*.ts` under the source directory is compiled. Outputs are written under `--out` with their relative
 /// paths, the manifest (`{"version":1,"typescript":"6.0.3","files":[{"source","sha256","output"}]}`, digests of
 /// the source bytes, `output` null for declaration files) to `--manifest`, and tsc-style diagnostic lines to
 /// `--diagnostics`. Exit code 0 means success, 1 type or syntax errors, 2 a crash. Callers own the output
-/// directory: nothing is deleted here.
+/// directory: nothing is deleted here. With a dependency snapshot, only type checking runs; JNPM owns bundling.
 public final class Cli {
 
     public static final int MANIFEST_VERSION = 1;
 
     private static final String USAGE = "usage: --source-dir <dir> --out <dir> --manifest <file> --diagnostics <file>"
-            + " [--no-type-check] [--source-map] [--host graaljs|node] [--node <executable>]";
+            + " [--no-type-check] [--source-map] [--host graaljs|node] [--node <executable>] [--dependencies <snapshot.json>]";
 
     private static TypescriptCompiler warm;
     private static String warmKey;
@@ -68,8 +68,9 @@ public final class Cli {
             System.err.println("jaspring-typescript: GraalJS runs in the interpreter, so type checking is slow;"
                     + " run on GraalVM with --enable-native-access=ALL-UNNAMED, use --host node, or --no-type-check");
         }
-        final var result = compiler.compile(new CompileRequest(sources.stream().map(Source::file).toList(),
-                new CompileOptions(arguments.typeCheck(), arguments.sourceMap())));
+        final var request = new CompileRequest(sources.stream().map(Source::file).toList(),
+                new CompileOptions(arguments.typeCheck(), arguments.sourceMap()), dependencies(arguments.dependencies()));
+        final var result = arguments.dependencies() == null ? compiler.compile(request) : compiler.check(request);
 
         for (final var output : result.outputs()) {
             final var target = arguments.out().resolve(output.path());
@@ -97,6 +98,14 @@ public final class Cli {
     }
 
     private record Source(SourceFile file, String sha256) {}
+
+    @SuppressWarnings("unchecked")
+    private static DependencySnapshot dependencies(Path path) throws IOException {
+        if (path == null) return DependencySnapshot.EMPTY;
+        final var data = (Map<String, Object>) Json.parse(Files.readString(path));
+        return new DependencySnapshot((Map<String, String>) data.get("files"), (List<String>) data.get("globalTypes"),
+                (List<String>) data.getOrDefault("allowedImports", List.of()));
+    }
 
     private static List<Source> readSources(Path sourceDir) throws IOException {
         if (!Files.isDirectory(sourceDir)) throw new IllegalArgumentException("Not a directory: " + sourceDir);
@@ -127,10 +136,10 @@ public final class Cli {
         return Json.write(manifest) + "\n";
     }
 
-    record Arguments(Path sourceDir, Path out, Path manifest, Path diagnostics, boolean typeCheck, boolean sourceMap, Host host, Path node) {
+    record Arguments(Path sourceDir, Path out, Path manifest, Path diagnostics, boolean typeCheck, boolean sourceMap, Host host, Path node, Path dependencies) {
 
         static Arguments parse(String[] args) {
-            Path sourceDir = null, out = null, manifest = null, diagnostics = null, node = null;
+            Path sourceDir = null, out = null, manifest = null, diagnostics = null, node = null, dependencies = null;
             var typeCheck = true;
             var sourceMap = false;
             var host = Host.GRAALJS;
@@ -139,7 +148,7 @@ public final class Cli {
                 switch (arg) {
                     case "--no-type-check" -> typeCheck = false;
                     case "--source-map" -> sourceMap = true;
-                    case "--source-dir", "--out", "--manifest", "--diagnostics", "--host", "--node" -> {
+                    case "--source-dir", "--out", "--manifest", "--diagnostics", "--host", "--node", "--dependencies" -> {
                         if (i + 1 >= args.length) throw new IllegalArgumentException(arg + " needs a value");
                         final var value = args[++i];
                         switch (arg) {
@@ -148,6 +157,7 @@ public final class Cli {
                             case "--manifest" -> manifest = Path.of(value);
                             case "--diagnostics" -> diagnostics = Path.of(value);
                             case "--node" -> node = Path.of(value);
+                            case "--dependencies" -> dependencies = Path.of(value);
                             default -> host = switch (value.toLowerCase(Locale.ROOT)) {
                                 case "graaljs" -> Host.GRAALJS;
                                 case "node" -> Host.NODE;
@@ -161,6 +171,6 @@ public final class Cli {
             if (sourceDir == null || out == null || manifest == null || diagnostics == null) {
                 throw new IllegalArgumentException("--source-dir, --out, --manifest and --diagnostics are required");
             }
-            return new Arguments(sourceDir, out, manifest, diagnostics, typeCheck, sourceMap, host, node);
+            return new Arguments(sourceDir, out, manifest, diagnostics, typeCheck, sourceMap, host, node, dependencies);
         }
     }}

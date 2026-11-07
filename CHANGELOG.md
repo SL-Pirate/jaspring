@@ -6,6 +6,8 @@ Notable changes to Jaspring. New work goes under **Unreleased**. On release, ren
 
 ### Added
 
+- JNPM browser dependencies in Gradle: `implementation`, `api`, `devImplementation` and `devApi`, frozen `jnpm.lock` installs under `build/node_modules`, managed Node/npm, esbuild bundles, private registries, ESLint, and optional IntelliJ integrations. Node/OS imports fail browser bundling. See `docs/jnpm.md`.
+
 - Browser scripts in TypeScript. `src/main/typescript/**/*.ts` is type-checked and compiled by the Gradle plugin's new `compileTypescript` task (TypeScript 6.0.3 bundled into the new `jaspring-typescript` module and run on GraalJS in a worker; `host = NODE` runs the same bundle in Node for speed), served as ES modules under `/_jaspring/ts/`, and every top-level file gets a `<script type="module">` tag after the shim. `jaspring.d.ts` types the `jaspring` global (`JaspringHook<E, P>`, `JaspringHookContext<P>`); `extractTypescriptTypes` puts it and a `tsconfig.base.json` under `build/jaspring/typescript/types/` for editors. See `docs/typescript.md`.
 - Startup fallback: with `jaspring-typescript` on the runtime classpath, the starter recompiles `src/main/typescript` at startup when the build's manifest is missing or stale (IDE runs, builds without the plugin) and serves the result from memory. `jaspring.typescript.enabled`, `type-check`, `source-dir` and `host` configure it.
 - `data-jsp-ignore` attribute. A patch leaves the element's children and attributes alone and only adds or updates its `data-*` attributes, so hook params still reach `updated`. Use it for elements whose DOM a widget owns (editors, maps, date pickers, Chart.js).
@@ -30,6 +32,7 @@ Pages in the docs site (`jaspring-docs`) that describe the last release and need
 - **Browser calls** (`browser-calls`, "Read the result"): remove "Keep results small" and the 8 KB warning. State the 4 MiB limit over the WebSocket. In "Handle failures", add an oversized result as a failure cause.
 - **Client hooks** (`client-hooks`, "Patches and hook-managed DOM"): add `data-jsp-ignore`.
 - **Third-party JavaScript** (`third-party-libraries`): use `data-jsp-ignore` on the chart in "Wrap it" and "Bind it", drop the `resize()` workaround note, and update the checklist and the "small hook results" wording. Show the wrapper hook in TypeScript with a local `.d.ts` for the library.
-- New **TypeScript** page (`typescript`): layout, the Gradle tasks and settings, GraalJS versus Node hosts, the `tsconfig.json` for editors, serving under `/_jaspring/ts/` and the automatic script tags, the startup fallback and its properties, the devtools limitation, limits (no bundling, no npm imports, TypeScript 6 line).
+- New **TypeScript** page (`typescript`): source layout, build settings, GraalJS/Node compiler hosts, editor setup, serving and automatic tags, startup fallback for package-free applications, and the TypeScript 6 limit.
+- New **JNPM** page: Gradle declarations, lock/update/install workflow, browser-only package compatibility, bundled assets, ESLint, private registries and IntelliJ integration.
 - **Client hooks** (`client-hooks`): the example in TypeScript with `JaspringHook<HTMLCanvasElement, number[]>`, scripts injected automatically, module ordering after the shim.
 - **Gradle plugin** page: the `typescript { }` block, `jaspringTypescript` configuration and the two tasks.

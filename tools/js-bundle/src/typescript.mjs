@@ -34,6 +34,7 @@ export function run(requestJson) {
             request.files ?? [],
             request.types ?? [],
             request.options ?? {},
+            request.dependencies ?? {},
           ),
         );
       default:
@@ -54,6 +55,8 @@ function compilerOptions(requestOptions) {
     {
       ...options,
       sourceMap: requestOptions.sourceMap === true,
+      noEmit: requestOptions.noEmit === true,
+      ...(requestOptions.packages ? { resolveJsonModule: true, customConditions: ["browser"] } : {}),
       rootDir: SRC,
       outDir: OUT,
     },
@@ -71,7 +74,7 @@ function compilerOptions(requestOptions) {
 
 /// Type-checks and emits every file against the bundled libs and the ambient `types`. With `typeCheck` off each
 /// file is transpiled on its own, which is what makes a stale-build fallback at startup cheap.
-export function compile(files, types, requestOptions) {
+export function compile(files, types, requestOptions, dependencies = {}) {
   if (requestOptions.typeCheck === false) {
     const outputs = [];
     const diagnostics = [];
@@ -81,15 +84,26 @@ export function compile(files, types, requestOptions) {
       outputs.push(...result.outputs);
       diagnostics.push(...result.diagnostics);
     }
-    return { outputs, diagnostics };
+    return { outputs: requestOptions.noEmit ? [] : outputs, diagnostics };
   }
-  const compilerOpts = compilerOptions(requestOptions);
+  const compilerOpts = compilerOptions({ ...requestOptions, packages: Object.keys(dependencies.files ?? {}).length > 0 });
   const sources = new Map();
   for (const file of files) sources.set(SRC + file.path, file.text);
   for (const file of types) sources.set(TYPES + file.path, file.text);
+  const roots = [...sources.keys(), ...(dependencies.globalTypes ?? []).map(path => "/" + path)];
+  for (const [path, text] of Object.entries(dependencies.files ?? {})) sources.set("/" + path, text);
   const outputs = [];
   const host = memoryHost(sources, compilerOpts, outputs);
-  const program = ts.createProgram([...sources.keys()], compilerOpts, host);
+  if (Object.keys(dependencies.files ?? {}).length > 0) {
+    const allowed = new Set([...(dependencies.allowedImports ?? []), 'jaspring']);
+    host.resolveModuleNameLiterals = (literals, containingFile) => literals.map(literal => {
+      const name = literal.text;
+      const root = name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0];
+      if (containingFile.startsWith(SRC) && !name.startsWith('.') && !allowed.has(root)) return { resolvedModule: undefined };
+      return ts.resolveModuleName(name, containingFile, compilerOpts, host);
+    });
+  }
+  const program = ts.createProgram(roots, compilerOpts, host);
   const diagnostics = [...ts.getPreEmitDiagnostics(program)];
   diagnostics.push(...program.emit().diagnostics);
   return { outputs, diagnostics: diagnostics.map(diagnostic) };

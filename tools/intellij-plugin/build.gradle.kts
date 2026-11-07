@@ -24,6 +24,7 @@ dependencies {
             intellijIdea(providers.gradleProperty("platformVersion").getOrElse("2026.2.3"))
         }
         bundledPlugin("com.intellij.java")
+        bundledPlugin("org.jetbrains.plugins.gradle")
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Java)
     }
@@ -34,6 +35,11 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
+// Shared, dependency-free Gradle tooling contract, also supplied to Gradle's model fetch process.
+sourceSets.main {
+    java.srcDir("../../jaspring-gradle-plugin/src/main/java/dev/isira/jaspring/gradle/jnpm/model")
+}
+
 intellijPlatform {
     pluginConfiguration {
         name = "Jaspring"
@@ -41,7 +47,7 @@ intellijPlatform {
             sinceBuild = "262"
             untilBuild = "263.*"
         }
-        changeNotes = "<ul><li>0.1.1: IntelliJ IDEA 2026.3 (build 263) support; no deprecated platform API left.</li></ul>"
+        changeNotes = "<ul><li>JNPM Gradle dependencies, browser builds and ESLint diagnostics for unsaved TypeScript.</li><li>IntelliJ IDEA 2026.2 and 2026.3 support.</li></ul>"
     }
     // JetBrains' plugin verifier against the newest supported line: ./gradlew -p tools/intellij-plugin verifyPlugin
     pluginVerification {
@@ -64,5 +70,8 @@ tasks.test {
     // testFramework extension point Java's run line markers query, and the platform VCS plugin provides the
     // intellij.platform.vcs module the core's own modules depend on; without it the loader drops every plugin that
     // depends on the core, this one included.
-    systemProperty("idea.load.plugins.id", "dev.isira.jaspring,com.intellij.java,intellij.testRunner.plugin,com.intellij.platform.testRunner,com.intellij.platform.vcs")
+    val jnpmIntegrations = providers.gradleProperty("jnpmIdeIntegration").getOrElse("false").toBoolean()
+    systemProperty("jnpm.ideIntegrations", jnpmIntegrations)
+    systemProperty("idea.load.plugins.id", "dev.isira.jaspring,com.intellij.java,intellij.testRunner.plugin,com.intellij.platform.testRunner,com.intellij.platform.vcs" +
+            if (jnpmIntegrations) ",com.intellij.gradle,org.jetbrains.plugins.gradle,org.intellij.groovy,org.jetbrains.idea.gradle.dsl,JavaScript,com.intellij.css,com.intellij.modules.json" else "")
 }

@@ -1,0 +1,6 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <externalAnnotator language="TypeScript" implementationClass="dev.isira.jaspring.ide.jnpm.JnpmLintAnnotator"/>
+        <externalAnnotator language="JavaScript" implementationClass="dev.isira.jaspring.ide.jnpm.JnpmLintAnnotator"/>
+    </extensions>
+</idea-plugin>

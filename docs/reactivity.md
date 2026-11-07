@@ -2,14 +2,14 @@
 
 `dev.isira.jaspring.signals` is a port of Angular's signal primitives (`packages/core/primitives/signals`, 21.2.x). The public API mirrors `@angular/core`:
 
-| Angular | Jaspring |
-|---|---|
-| `signal(v)` / `set` / `update` / `asReadonly` | `Signals.signal(v)` → `WritableSignal<T>` |
-| `computed(fn)` | `Signals.computed(supplier)` → `Signal<T>` |
-| `linkedSignal(fn)` / `linkedSignal({source, computation})` | `Signals.linkedSignal(...)` |
-| `effect(fn)` with `onCleanup` | `Signals.effect(body)` / `effect(cleanup -> ...)` → `EffectRef` |
-| `untracked(fn)` | `Signals.untracked(...)` |
-| `input()` / `input.required()` / `model()` / `output()` | `Signals.input()` / `inputRequired()` / `model()` / `output()` |
+| Angular                                                    | Jaspring                                                        |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| `signal(v)` / `set` / `update` / `asReadonly`              | `Signals.signal(v)` → `WritableSignal<T>`                       |
+| `computed(fn)`                                             | `Signals.computed(supplier)` → `Signal<T>`                      |
+| `linkedSignal(fn)` / `linkedSignal({source, computation})` | `Signals.linkedSignal(...)`                                     |
+| `effect(fn)` with `onCleanup`                              | `Signals.effect(body)` / `effect(cleanup -> ...)` → `EffectRef` |
+| `untracked(fn)`                                            | `Signals.untracked(...)`                                        |
+| `input()` / `input.required()` / `model()` / `output()`    | `Signals.input()` / `inputRequired()` / `model()` / `output()`  |
 
 Templates call signals the Angular way: `{{ count() }}` evaluates `count.get()`.
 

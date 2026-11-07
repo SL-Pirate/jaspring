@@ -1,0 +1,13 @@
+# Generated files: rebuild them from their sources instead of formatting them.
+jaspring-core/src/main/resources/jaspring/js/
+jaspring-core/src/main/resources/META-INF/jaspring/
+jaspring-typescript/src/main/resources/jaspring/typescript/jaspring-typescript.mjs
+jaspring-typescript/src/main/resources/jaspring/typescript/jaspring.d.ts
+jaspring-typescript/src/main/resources/META-INF/jaspring/
+jaspring-spring-boot-starter/src/main/resources/jaspring/static/jaspring.js
+jaspring-spring-boot-starter/src/main/resources/jaspring/static/jaspring-wasm.js
+jaspring-spring-boot-starter/src/main/resources/jaspring/static/idiomorph.min.js
+jaspring-core/src/test/resources/jaspring/compat/
+pnpm-lock.yaml
+build/
+node_modules/

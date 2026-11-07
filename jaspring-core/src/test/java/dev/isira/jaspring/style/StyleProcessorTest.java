@@ -1,29 +1,19 @@
 package dev.isira.jaspring.style;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.junit.jupiter.api.Test;
-
 import dev.isira.jaspring.component.Component;
 import dev.isira.jaspring.component.ComponentDefs;
 import dev.isira.jaspring.template.parse.AngularCompilerRuntime;
+import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StyleProcessorTest {
 
     private static final AngularCompilerRuntime RUNTIME = AngularCompilerRuntime.load();
-
-    @Component(selector = "app-styled", template = "<p>x</p>", styles = {
-            ":host { display: block }",
-            ".a > .b, h1:hover::after { color: red }",
-            ":host-context(.dark) .x { color: white }",
-            ".c ::ng-deep .inner, .d /deep/ .e { margin: 0 }",
-            "@media (min-width: 10px) { .m { top: 0 } } @keyframes spin { from { opacity: 0 } to { opacity: 1 } }"
-    })
-    public static class Styled {}
-
-    @Component(selector = "app-file", template = "<p>x</p>", styleUrl = "style-processor-test.css")
-    public static class FromFile {}
 
     @Test
     void scopesSelectorsLikeAngularsEmulatedEncapsulation() {
@@ -40,6 +30,20 @@ class StyleProcessorTest {
     @Test
     void styleUrlLoadsNextToTheComponent() {
         final var css = new StyleProcessor(RUNTIME).process(ComponentDefs.of(FromFile.class, 0));
-        assertEquals("p[_ngcontent-jsp-c0] { color: blue }", css.trim());
+        assertEquals("p[_ngcontent-jsp-c0] { color: blue; }", Arrays.stream(css.split("\n")).map(String::trim).collect(Collectors.joining(" ")));
+    }
+
+    @Component(selector = "app-styled", template = "<p>x</p>", styles = {
+            ":host { display: block }",
+            ".a > .b, h1:hover::after { color: red }",
+            ":host-context(.dark) .x { color: white }",
+            ".c ::ng-deep .inner, .d /deep/ .e { margin: 0 }",
+            "@media (min-width: 10px) { .m { top: 0 } } @keyframes spin { from { opacity: 0 } to { opacity: 1 } }"
+    })
+    public static class Styled {
+    }
+
+    @Component(selector = "app-file", template = "<p>x</p>", styleUrl = "style-processor-test.css")
+    public static class FromFile {
     }
 }

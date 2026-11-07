@@ -1,7 +1,7 @@
-import { parseTemplate, DomElementSchemaRegistry } from '@angular/compiler';
-import postcss from 'postcss';
-import scopePlugin from './scope-plugin.mjs';
-export { compileTailwind } from './tailwind.mjs';
+import { parseTemplate, DomElementSchemaRegistry } from "@angular/compiler";
+import postcss from "postcss";
+import scopePlugin from "./scope-plugin.mjs";
+export { compileTailwind } from "./tailwind.mjs";
 
 export const versions = __JASPRING_VERSIONS__;
 
@@ -38,7 +38,14 @@ export function domSchema() {
     events[tag] = [...names];
   }
   const attrToProp = {};
-  for (const attr of ['class', 'for', 'formaction', 'innerHtml', 'readonly', 'tabindex']) {
+  for (const attr of [
+    "class",
+    "for",
+    "formaction",
+    "innerHtml",
+    "readonly",
+    "tabindex",
+  ]) {
     attrToProp[attr] = registry.getMappedPropName(attr);
   }
   return { elements, events, attrToProp };
@@ -48,7 +55,10 @@ export function domSchema() {
 /// :host becomes the host attribute. Mirrors Angular's ShadowCss, which the compiler does not export.
 export function processCss(css, scopeId) {
   const result = postcss([
-    scopePlugin({ hostAttr: `_nghost-${scopeId}`, contentAttr: `_ngcontent-${scopeId}` }),
+    scopePlugin({
+      hostAttr: `_nghost-${scopeId}`,
+      contentAttr: `_ngcontent-${scopeId}`,
+    }),
   ]).process(css, { from: undefined });
   return result.css;
 }

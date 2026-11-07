@@ -1,1 +1,5 @@
-window.JaspringWasm = { run: function () { return Promise.resolve(); } };
+window.JaspringWasm = {
+  run: function () {
+    return Promise.resolve();
+  },
+};

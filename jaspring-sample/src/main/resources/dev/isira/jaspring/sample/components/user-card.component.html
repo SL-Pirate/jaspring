@@ -1,5 +1,16 @@
 <strong>{{ name() | uppercase }}</strong>
-<em class="rounded px-2 text-xs" [ngClass]="role() === 'chosen' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'">{{ role() }}</em>
+<em
+  class="rounded px-2 text-xs"
+  [ngClass]="
+    role() === 'chosen' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-600'
+  "
+  >{{ role() }}</em
+>
 <ng-content></ng-content>
-<button class="rounded border border-brand px-2 text-brand hover:bg-brand hover:text-white" (click)="choose()">select</button>
+<button
+  class="rounded border border-brand px-2 text-brand hover:bg-brand hover:text-white"
+  (click)="choose()"
+>
+  select
+</button>
 <span class="renders">rendered {{ renderCount() }}x</span>

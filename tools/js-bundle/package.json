@@ -2,14 +2,15 @@
   "name": "jaspring-js-bundle",
   "private": true,
   "type": "module",
-  "description": "Bundles @angular/compiler and PostCSS into one ESM file loaded by jaspring-core in GraalJS.",
+  "description": "Bundles @angular/compiler and PostCSS into one ESM file loaded by jaspring-core in GraalJS, and the TypeScript compiler into one loaded by jaspring-typescript.",
   "scripts": {
     "build": "node build.mjs"
   },
   "dependencies": {
     "@angular/compiler": "21.2.25",
     "postcss": "8.5.31",
-    "tailwindcss": "4.3.3"
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

@@ -34,11 +34,11 @@ def published_version(directory, version):
 
 
 def verify(repository, version, require_signatures):
-    artifacts = {"jaspring-core", "jaspring-browser-runtime", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
+    artifacts = {"jaspring-core", "jaspring-browser-runtime", "jaspring-typescript", "jaspring-spring-boot-starter", "jaspring-gradle-plugin"}
     group = repository / "dev/isira"
     require(group.is_dir(), f"Missing repository group: {group}")
     require({path.name for path in group.iterdir() if path.is_dir()} == artifacts | {"jaspring"},
-            "Only core, the browser runtime, the Spring Boot starter, Gradle plugin and its marker group should be published")
+            "Only core, the browser runtime, the TypeScript compiler, the Spring Boot starter, Gradle plugin and its marker group should be published")
     if version is None:
         version = ET.parse(group / "jaspring-core/maven-metadata.xml").findtext("versioning/latest")
         require(version, "No latest core version in repository metadata")
@@ -75,6 +75,9 @@ def verify(repository, version, require_signatures):
             require("spring-boot-starter-websocket" not in dependencies, "WebSocket support must remain optional")
         elif artifact == "jaspring-core":
             require("polyglot" in dependencies and "js-community" in dependencies, "Missing GraalJS dependencies")
+        elif artifact == "jaspring-typescript":
+            require(set(dependencies) == {"polyglot", "js-community"},
+                    "The TypeScript compiler depends on GraalJS only; the compiler itself is a bundled resource")
         elif artifact == "jaspring-browser-runtime":
             core = dependencies.get("jaspring-core")
             require(core is not None and core.findtext("m:version", namespaces=ns) == version,
@@ -98,6 +101,7 @@ def verify(repository, version, require_signatures):
                     resource = {
                         "jaspring-core": "META-INF/jaspring/THIRD-PARTY-LICENSES.txt",
                         "jaspring-browser-runtime": "dev/isira/jaspring/browser/runtime/WebClient.class",
+                        "jaspring-typescript": "jaspring/typescript/jaspring-typescript.mjs",
                         "jaspring-spring-boot-starter": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
                         "jaspring-gradle-plugin": "META-INF/gradle-plugins/dev.isira.jaspring.properties",
                     }[artifact]

@@ -2,3 +2,7 @@
 *.bat text eol=crlf
 *.jar binary
 jaspring-core/src/main/resources/jaspring/js/*.mjs linguist-generated=true -diff
+jaspring-typescript/src/main/resources/jaspring/typescript/jaspring-typescript.mjs linguist-generated=true -diff
+jaspring-typescript/src/main/resources/jaspring/typescript/jaspring.d.ts linguist-generated=true
+jaspring-spring-boot-starter/src/main/resources/jaspring/static/jaspring.js linguist-generated=true
+jaspring-spring-boot-starter/src/main/resources/jaspring/static/jaspring-wasm.js linguist-generated=true

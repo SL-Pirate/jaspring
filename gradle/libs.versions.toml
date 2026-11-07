@@ -5,6 +5,8 @@ graal = "25.2.4"
 angular = "21.2.25"
 postcss = "8.5.31"
 tailwind = "4.3.3"
+# Last JavaScript release of the compiler (7.x is a native binary); the GraalJS host is tied to this line.
+typescript = "6.0.3"
 maven-publish = "0.37.0"
 
 [libraries]
